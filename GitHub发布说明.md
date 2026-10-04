@@ -1,6 +1,6 @@
 # SlidePace GitHub 发布说明
 
-当前版本为 `1.0.2`。源码放在 GitHub 仓库，用户安装文件放在 Releases。
+当前版本为 `1.0.3`。源码放在 GitHub 仓库，用户安装文件放在 Releases。
 
 项目仓库：[Jimmy-1020/SlidePace](https://github.com/Jimmy-1020/SlidePace)。
 
@@ -37,7 +37,7 @@ Python 构建脚本会通过 `vswhere` 或 PATH 查找 MSBuild，也支持通过
 ## 发布安装包
 
 1. 在 GitHub 仓库打开 **Releases → Draft a new release**。
-2. 为当前源码创建 `v1.0.2` 标签，标题填写 `SlidePace 1.0.2`。
+2. 为当前源码创建 `v1.0.3` 标签，标题填写 `SlidePace 1.0.3`。
 3. 上传 `dist` 中的 `SlidePace-Setup.exe`、`SlidePace-Source.zip`、`SHA256SUMS.txt`。如需完整说明，也上传中文 Markdown 文档及验证截图目录的压缩包。
 4. 发布说明中写明适用于 Windows 64 位 PowerPoint，用户先保存并关闭 PowerPoint，再运行 EXE；列出本次改动及验证报告链接。
 

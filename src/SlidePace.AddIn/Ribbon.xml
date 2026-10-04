@@ -5,16 +5,11 @@
       <tab id="SlidePaceTab" label="SlidePace 计时">
         <group id="SlidePaceModes" label="计时模式">
           <toggleButton id="ModeCountUp" label="顺计时" getPressed="GetModePressed" onAction="OnModeChanged" screentip="顺计时" supertip="进入放映自动开始；再次点击取消选择。" />
-          <toggleButton id="ModeCountDown" label="倒计时" getPressed="GetModePressed" onAction="OnModeChanged" screentip="倒计时" supertip="归零后继续记录超时，默认变为红色。" />
+          <toggleButton id="ModeCountDown" label="倒计时" getPressed="GetModePressed" onAction="OnModeChanged" screentip="倒计时" supertip="归零后可停止或继续顺计时，默认变为红色。" />
           <toggleButton id="ModeClock" label="系统时间" getPressed="GetModePressed" onAction="OnModeChanged" />
         </group>
-        <group id="SlidePaceDuration" label="倒计时时长">
-          <editBox id="CountdownDuration" label="时:分:秒" getText="GetDurationText" onChange="OnDurationChanged" sizeString="00:00:00" maxLength="8" />
-          <labelControl id="DurationHint" label="归零后继续计时" />
-        </group>
         <group id="SlidePaceDisplay" label="框体设置">
-          <button id="OpenSettings" label="字体 · 位置 · 颜色 · 双屏" onAction="OnOpenSettings" />
-          <toggleButton id="ShowOverlay" label="显示计时" getPressed="GetShowPressed" onAction="OnShowChanged" />
+          <button id="OpenSettings" label="计时器设置" onAction="OnOpenSettings" />
           <button id="OpenHelp" label="使用说明" onAction="OnHelp" />
         </group>
       </tab>

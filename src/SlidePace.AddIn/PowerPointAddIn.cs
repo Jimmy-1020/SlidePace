@@ -56,6 +56,7 @@ namespace SlidePace
                 settings = store.Load();
                 engine = new TimerEngine(new SystemTimeSource());
                 engine.SetCountdownSeconds(settings.CountdownSeconds);
+                engine.SetCountdownEndBehavior(settings.CountdownEndBehavior);
                 engine.SelectMode((TimerMode)settings.Mode);
                 overlays = new OverlayManager(settings, Persist, StartPause, Continue, Reset, OpenSettings,
                     delegate(TimerMode mode) { SelectMode(engine.Mode == mode ? TimerMode.None : mode); });
@@ -115,8 +116,6 @@ namespace SlidePace
 
         public void OnRibbonLoad(Office.IRibbonUI value) { ribbon = value; InvalidateRibbon(); }
         public bool GetModePressed(Office.IRibbonControl control) { return engine != null && engine.Mode == ControlMode(control.Id); }
-        public bool GetShowPressed(Office.IRibbonControl control) { return settings == null || settings.ShowOverlay; }
-        public string GetDurationText(Office.IRibbonControl control) { return TimerEngine.FormatSeconds(engine == null ? 600 : engine.CountdownSeconds); }
         public string GetStartLabel(Office.IRibbonControl control) { return engine != null && engine.Snapshot().IsRunning ? "暂停" : "开始"; }
         public bool GetStartEnabled(Office.IRibbonControl control)
         {
@@ -128,7 +127,7 @@ namespace SlidePace
         {
             if (!CanControl()) return false;
             TimerSnapshot value = engine.Snapshot();
-            return value.HasStarted && !value.IsRunning;
+            return value.HasStarted && !value.IsRunning && !value.IsCompleted;
         }
         public bool GetResetEnabled(Office.IRibbonControl control)
         {
@@ -147,28 +146,10 @@ namespace SlidePace
         public void OnContinue(Office.IRibbonControl control) { Continue(); }
         public void OnReset(Office.IRibbonControl control) { Reset(); }
         public void OnOpenSettings(Office.IRibbonControl control) { OpenSettings(); }
-        public void OnShowChanged(Office.IRibbonControl control, bool pressed)
-        {
-            Guard(delegate { settings.ShowOverlay = pressed; Persist(); Render(); }, true);
-        }
-        public void OnDurationChanged(Office.IRibbonControl control, string text)
-        {
-            Guard(delegate
-            {
-                int seconds;
-                if (!TimerEngine.TryParseDuration(text, out seconds)) throw new ArgumentException("请输入有效时长，例如 00:10:00；范围为 00:00:01 至 23:59:59。");
-                engine.SetCountdownSeconds(seconds);
-                settings.CountdownSeconds = seconds;
-                Persist();
-                Render();
-            }, true);
-            InvalidateRibbon();
-        }
-
         public void OnHelp(Office.IRibbonControl control)
         {
-            MessageBox.Show("每次打开 PowerPoint 默认不选计时模式。点击一种模式选中，再次点击取消；进入放映自动开始。\n\n框体半透明，平时只显示时间数字；悬停展开按钮，移开恢复紧凑高度。运行时“开始”原位变为“暂停”。\n\n倒计时归零后继续计时，默认红色；在“字体 · 位置 · 颜色 · 双屏”中选择字体、字号、颜色和位置。\n\n演讲者和观众屏幕同步显示；右键可收起框体或切换模式。\n\n取消选中模式后所有屏幕都不显示计时。结束放映自动暂停；再次放映继续本次会话读数，从头计时请先重置。",
-                "SlidePace 1.0.2 · 使用说明", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("每次打开 PowerPoint 默认不选计时模式。点击一种模式选中，再次点击取消；进入放映自动显示并开始。\n\n框体半透明，平时只显示时间数字；悬停展开按钮，移开恢复紧凑高度。运行时“开始”原位变为“暂停”。\n\n在“计时器设置”中选择时长、归零后停止或继续顺计时、字体、字号、颜色和位置。时间不显示负数；倒计时归零后默认变为红色，可自选颜色。\n\n演讲者和观众屏幕同步显示；右键可收起框体或切换模式。\n\n取消选中模式后所有屏幕都不显示计时。结束放映自动暂停；再次放映继续本次会话读数。已完成的倒计时保持零，开始新一轮请先重置。",
+                "SlidePace 1.0.3 · 使用说明", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         internal void SelectMode(TimerMode mode)
@@ -203,7 +184,9 @@ namespace SlidePace
         }
         internal void ApplySettings(UserSettings value)
         {
+            value.Validate();
             engine.SetCountdownSeconds(value.CountdownSeconds);
+            engine.SetCountdownEndBehavior(value.CountdownEndBehavior);
             engine.SelectMode((TimerMode)value.Mode);
             settings = value;
             overlays.ApplySettings(settings);
@@ -246,7 +229,7 @@ namespace SlidePace
             TimerSnapshot value = engine.Snapshot();
             if (!string.IsNullOrEmpty(notice) && !value.IsOvertime) value.Status = notice;
             overlays.Render(value, engine.IsSlideShowActive);
-            string state = value.Mode + ":" + value.IsRunning + ":" + value.HasStarted;
+            string state = value.Mode + ":" + value.IsRunning + ":" + value.HasStarted + ":" + value.IsCompleted;
             if (previousState != state) { previousState = state; InvalidateRibbon(); }
         }
         private void SlideShowBegin(PowerPoint.SlideShowWindow window)
@@ -299,7 +282,15 @@ namespace SlidePace
                 {
                     bool found = false;
                     for (int index = 1; index <= windows.Count; index++)
-                        if (SameComObject(windows[index].Presentation, activePresentation)) { found = true; break; }
+                    {
+                        PowerPoint.SlideShowWindow candidate = windows[index];
+                        if (!SameComObject(candidate.Presentation, activePresentation)) continue;
+                        if (candidate.View.State == PowerPoint.PpSlideShowState.ppSlideShowDone) continue;
+                        activeShow = candidate;
+                        overlays.SetHostWindows(new IntPtr(application.HWND), new IntPtr(candidate.HWND));
+                        found = true;
+                        break;
+                    }
                     if (!found) EndShow();
                 }
                 else

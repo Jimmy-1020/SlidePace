@@ -10,6 +10,7 @@ namespace SlidePace
     {
         private readonly UserSettings original;
         private readonly ComboBox mode = new ComboBox();
+        private readonly ComboBox endBehavior = new ComboBox();
         private readonly NumericUpDown hours = new NumericUpDown();
         private readonly NumericUpDown minutes = new NumericUpDown();
         private readonly NumericUpDown seconds = new NumericUpDown();
@@ -29,28 +30,24 @@ namespace SlidePace
         public SettingsForm(UserSettings settings, bool countdownRunning)
         {
             original = settings;
-            Text = "SlidePace · 框体设置";
+            Text = "SlidePace · 计时器设置";
             Font = new Font("Microsoft YaHei UI", 9);
             BackColor = Color.FromArgb(246, 248, 251);
             ForeColor = Color.FromArgb(27, 40, 56);
-            ClientSize = new Size(620, 620);
-            MinimumSize = new Size(636, 659);
+            ClientSize = new Size(500, 446);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
             AutoScaleMode = AutoScaleMode.Dpi;
-            var table = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(24), ColumnCount = 2, RowCount = 13 };
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 145));
+            var table = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(18), ColumnCount = 2, RowCount = 12, AutoScroll = true };
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
             table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (int index = 0; index < 12; index++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, index == 0 ? 45 : index == 7 ? 52 : 38));
-            table.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            var title = new Label { Text = "放映自动开始 · 双方同步显示", AutoSize = true, Font = new Font(Font.FontFamily, 12, FontStyle.Bold) };
-            table.Controls.Add(title, 0, 0);
-            table.SetColumnSpan(title, 2);
+            for (int index = 0; index < 11; index++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, index == 1 ? 36 : index == 6 ? 40 : 32));
+            table.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
             mode.Items.AddRange(new object[] { "不显示（全部不选）", "顺计时", "倒计时", "系统时间" });
             mode.SelectedIndex = settings.Mode;
-            AddRow(table, 1, "计时模式", mode);
+            AddRow(table, 0, "计时模式", mode);
             var duration = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
             SetNumber(hours, 23, settings.CountdownSeconds / 3600);
             SetNumber(minutes, 59, settings.CountdownSeconds / 60 % 60);
@@ -59,11 +56,16 @@ namespace SlidePace
                 minutes, new Label { Text = "分", AutoSize = true, Margin = new Padding(1, 6, 6, 0) }, seconds,
                 new Label { Text = "秒", AutoSize = true, Margin = new Padding(1, 6, 0, 0) } });
             duration.Enabled = !countdownRunning;
-            AddRow(table, 2, "倒计时时长", duration);
-            var hint = new Label { Text = countdownRunning ? "倒计时运行中：请先暂停，再修改时长。" : "归零后继续显示超时时间。", AutoSize = true, ForeColor = Color.FromArgb(92, 111, 134) };
-            table.Controls.Add(hint, 1, 3);
+            duration.AccessibleDescription = "倒计时运行中需先暂停，再修改时长。";
+            AddRow(table, 1, "倒计时时长", duration);
+            endBehavior.Name = "CountdownEndBehavior";
+            endBehavior.AccessibleName = "归零后";
+            endBehavior.Items.AddRange(new object[] { "继续顺计时", "停止计时" });
+            endBehavior.SelectedIndex = (int)settings.CountdownEndBehavior;
+            endBehavior.Enabled = !countdownRunning;
+            AddRow(table, 2, "归零后", endBehavior);
             overtimeColor = settings.GetOvertimeColor();
-            colorButton.Text = "选择超时颜色…";
+            colorButton.Text = "选择归零后的颜色…";
             colorButton.BackColor = overtimeColor;
             colorButton.ForeColor = overtimeColor.GetBrightness() < 0.5 ? Color.White : Color.Black;
             colorButton.Click += delegate
@@ -76,12 +78,13 @@ namespace SlidePace
                         colorButton.ForeColor = overtimeColor.GetBrightness() < 0.5 ? Color.White : Color.Black;
                     }
             };
-            AddRow(table, 4, "归零后的数字颜色", colorButton);
+            AddRow(table, 3, "归零后的数字颜色", colorButton);
             size.Items.AddRange(new object[] { "小", "中", "大" });
             size.SelectedIndex = settings.FontSize;
-            AddRow(table, 5, "数字大小", size);
+            AddRow(table, 4, "数字大小", size);
             numberFont.Name = "NumberFont";
             numberFont.AccessibleName = "数字字体";
+            numberFont.DropDownWidth = 420;
             foreach (FontFamily family in FontFamily.Families.OrderBy(delegate(FontFamily value) { return value.Name; }))
             {
                 using (family)
@@ -90,11 +93,11 @@ namespace SlidePace
             }
             numberFont.SelectedItem = settings.NumberFontName;
             if (numberFont.SelectedIndex < 0) numberFont.SelectedItem = "Consolas";
-            fontPreview.Text = "00:00:00   -00:00:01";
+            fontPreview.Text = "00:00:00   00:00:01";
             fontPreview.TextAlign = ContentAlignment.MiddleLeft;
             numberFont.SelectedIndexChanged += delegate { UpdateFontPreview(); };
-            AddRow(table, 6, "数字字体", numberFont);
-            AddRow(table, 7, "字体预览", fontPreview);
+            AddRow(table, 5, "数字字体", numberFont);
+            AddRow(table, 6, "字体预览", fontPreview);
             UpdateFontPreview();
             devices.Add("");
             presenter.Items.Add("自动识别");
@@ -109,18 +112,18 @@ namespace SlidePace
             }
             presenter.SelectedIndex = Math.Max(0, devices.IndexOf(settings.PresenterDevice));
             audience.SelectedIndex = Math.Max(0, devices.IndexOf(settings.AudienceDevice));
-            AddRow(table, 8, "演讲者屏幕", presenter);
-            AddRow(table, 9, "观众放映屏幕", audience);
+            AddRow(table, 7, "演讲者屏幕", presenter);
+            AddRow(table, 8, "观众放映屏幕", audience);
             FillPositions(presenterPosition, settings.PresenterPosition);
             FillPositions(audiencePosition, settings.AudiencePosition);
-            AddRow(table, 10, "演讲者框体位置", presenterPosition);
-            AddRow(table, 11, "观众框体位置", audiencePosition);
-            var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 10, 0, 0) };
+            AddRow(table, 9, "演讲者框体位置", presenterPosition);
+            AddRow(table, 10, "观众框体位置", audiencePosition);
+            var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Margin = new Padding(0), FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 6, 0, 0) };
             var save = new Button { Text = "保存设置", Width = 112, Height = 34, BackColor = Color.FromArgb(35, 93, 179), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             var cancel = new Button { Text = "取消", Width = 90, Height = 34, DialogResult = DialogResult.Cancel };
             save.Click += Save;
             footer.Controls.AddRange(new Control[] { save, cancel });
-            table.Controls.Add(footer, 0, 12);
+            table.Controls.Add(footer, 0, 11);
             table.SetColumnSpan(footer, 2);
             Controls.Add(table);
             AcceptButton = save;
@@ -141,7 +144,7 @@ namespace SlidePace
             control.Minimum = 0;
             control.Maximum = max;
             control.Value = value;
-            control.Width = 65;
+            control.Width = 58;
         }
         private static void FillPositions(ComboBox control, OverlayPosition position)
         {
@@ -173,6 +176,7 @@ namespace SlidePace
             {
                 Mode = mode.SelectedIndex,
                 CountdownSeconds = duration,
+                CountdownEndBehavior = (CountdownEndBehavior)endBehavior.SelectedIndex,
                 FontSize = size.SelectedIndex,
                 NumberFontName = (string)numberFont.SelectedItem ?? "Consolas",
                 OvertimeColor = ColorTranslator.ToHtml(overtimeColor),
@@ -180,7 +184,6 @@ namespace SlidePace
                 AudienceDevice = devices[audience.SelectedIndex],
                 PresenterPosition = (OverlayPosition)presenterPosition.SelectedIndex,
                 AudiencePosition = (OverlayPosition)audiencePosition.SelectedIndex,
-                ShowOverlay = original.ShowOverlay,
                 Locations = original.Locations.Select(delegate(SavedLocation item) { return new SavedLocation { Device = item.Device, X = item.X, Y = item.Y }; }).ToList()
             };
             DialogResult = DialogResult.OK;

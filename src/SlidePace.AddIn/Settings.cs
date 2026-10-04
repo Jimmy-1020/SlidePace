@@ -22,6 +22,7 @@ namespace SlidePace
     {
         [DataMember] public int Mode;
         [DataMember] public int CountdownSeconds = 600;
+        [DataMember] public CountdownEndBehavior CountdownEndBehavior;
         [DataMember] public string OvertimeColor = "#FF0000";
         [DataMember] public int FontSize = 1;
         [DataMember] public string NumberFontName = "Consolas";
@@ -29,17 +30,16 @@ namespace SlidePace
         [DataMember] public OverlayPosition AudiencePosition;
         [DataMember] public string PresenterDevice = "";
         [DataMember] public string AudienceDevice = "";
-        [DataMember] public bool ShowOverlay = true;
         [DataMember] public List<SavedLocation> Locations = new List<SavedLocation>();
 
         [OnDeserializing]
         private void SetDefaults(StreamingContext context)
         {
             CountdownSeconds = 600;
+            CountdownEndBehavior = SlidePace.CountdownEndBehavior.ContinueCountUp;
             OvertimeColor = "#FF0000";
             FontSize = 1;
             NumberFontName = "Consolas";
-            ShowOverlay = true;
             PresenterDevice = AudienceDevice = "";
             Locations = new List<SavedLocation>();
         }
@@ -54,6 +54,7 @@ namespace SlidePace
         {
             if (!Enum.IsDefined(typeof(TimerMode), Mode)) Mode = 0;
             if (CountdownSeconds < 1 || CountdownSeconds > 86399) CountdownSeconds = 600;
+            if (!Enum.IsDefined(typeof(CountdownEndBehavior), CountdownEndBehavior)) CountdownEndBehavior = SlidePace.CountdownEndBehavior.ContinueCountUp;
             if (FontSize < 0 || FontSize > 2) FontSize = 1;
             try
             {

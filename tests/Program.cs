@@ -111,18 +111,18 @@ internal static partial class Program
         time.Seconds += 0.4;
         Equal(timer.Snapshot().Text, "00:00:00", "no negative zero");
         time.Seconds = start + 8;
-        Equal(timer.Snapshot().Text, "-00:00:03", "overtime grows");
+        Equal(timer.Snapshot().Text, "00:00:03", "positive overtime grows");
         timer.Pause();
         time.Seconds += 20;
-        Equal(timer.Snapshot().Text, "-00:00:03", "overtime pause");
+        Equal(timer.Snapshot().Text, "00:00:03", "overtime pause");
         timer.Start();
         time.Seconds += 2;
-        Equal(timer.Snapshot().Text, "-00:00:05", "overtime resume");
+        Equal(timer.Snapshot().Text, "00:00:05", "overtime resume");
         timer.SelectMode(TimerMode.None);
         Check(!timer.Snapshot().IsRunning, "none pauses");
         time.Seconds += 50;
         timer.SelectMode(TimerMode.CountDown);
-        Equal(timer.Snapshot().Text, "-00:00:05", "cancel preserves overtime");
+        Equal(timer.Snapshot().Text, "00:00:05", "cancel preserves overtime");
         Check(timer.Snapshot().IsRunning, "return during show resumes");
         timer.Reset();
         Equal(timer.Snapshot().Text, "00:00:05", "countdown reset");
@@ -132,6 +132,9 @@ internal static partial class Program
         bool rejected = false;
         try { timer.SetCountdownSeconds(10); } catch (InvalidOperationException) { rejected = true; }
         Check(rejected, "running duration change rejected");
+        rejected = false;
+        try { timer.SetCountdownEndBehavior(CountdownEndBehavior.Stop); } catch (InvalidOperationException) { rejected = true; }
+        Check(rejected, "running end behavior change rejected");
         timer.SelectMode(TimerMode.Clock);
         time.Now = new DateTime(2026, 10, 4, 23, 59, 59);
         Equal(timer.Snapshot().Text, "23:59:59", "clock 24h");
@@ -150,30 +153,83 @@ internal static partial class Program
         Equal(timer.Snapshot().Text, "00:30:00", "simulated 30-minute elapsed accuracy");
         time.Seconds = 7200;
         Equal(timer.Snapshot().Text, "02:00:00", "simulated two-hour elapsed accuracy");
+        foreach (double lateRefresh in new[] { 5.0, 5.4, 100.0 })
+        {
+            var stopTime = new FakeTime();
+            var stopTimer = new TimerEngine(stopTime);
+            stopTimer.SetCountdownSeconds(5);
+            stopTimer.SetCountdownEndBehavior(CountdownEndBehavior.Stop);
+            stopTimer.SelectMode(TimerMode.CountDown);
+            stopTimer.BeginSlideShow();
+            stopTime.Seconds = 4.999;
+            Check(stopTimer.Snapshot().Text == "00:00:01" && !stopTimer.Snapshot().IsOvertime, "stop not early");
+            stopTime.Seconds = lateRefresh;
+            Equal(stopTimer.Snapshot().Text, "00:00:00", "stop at zero even with late refresh");
+            Check(stopTimer.Snapshot().IsCompleted && stopTimer.Snapshot().IsOvertime && !stopTimer.Snapshot().IsRunning, "stop completes and uses end color");
+            Equal(stopTimer.Snapshot().ElapsedSeconds, 5.0, "stop freezes at exact deadline");
+            stopTime.Seconds += 50;
+            stopTimer.Start();
+            stopTimer.SelectMode(TimerMode.None);
+            stopTimer.SelectMode(TimerMode.CountDown);
+            stopTimer.SelectMode(TimerMode.CountUp);
+            stopTimer.Reset();
+            stopTimer.SelectMode(TimerMode.CountDown);
+            Check(stopTimer.Snapshot().IsCompleted && !stopTimer.Snapshot().IsRunning, "resetting another mode keeps countdown completed");
+            stopTimer.EndSlideShow();
+            stopTimer.BeginSlideShow();
+            Check(stopTimer.Snapshot().IsCompleted && !stopTimer.Snapshot().IsRunning && stopTimer.Snapshot().Text == "00:00:00", "completed stop cannot resume through modes or repeated show");
+            stopTimer.SetCountdownEndBehavior(CountdownEndBehavior.ContinueCountUp);
+            stopTimer.Start();
+            Check(!stopTimer.Snapshot().IsRunning, "changing completed behavior still needs reset");
+            stopTimer.Reset();
+            Check(!stopTimer.Snapshot().IsCompleted && !stopTimer.Snapshot().IsOvertime && stopTimer.Snapshot().Text == "00:00:05", "reset clears completion and end color");
+            stopTimer.Start();
+            stopTime.Seconds += 6;
+            Check(stopTimer.Snapshot().IsRunning && stopTimer.Snapshot().Text == "00:00:01", "new round continues upward with no negative sign");
+        }
+        var exitTime = new FakeTime();
+        var exitTimer = new TimerEngine(exitTime);
+        exitTimer.SetCountdownSeconds(1);
+        exitTimer.SetCountdownEndBehavior(CountdownEndBehavior.Stop);
+        exitTimer.SelectMode(TimerMode.CountDown);
+        exitTimer.BeginSlideShow();
+        exitTime.Seconds = 10;
+        exitTimer.EndSlideShow();
+        exitTimer.BeginSlideShow();
+        Check(exitTimer.Snapshot().IsCompleted && !exitTimer.Snapshot().IsRunning, "exit after deadline without refresh still completes");
         var store = new SettingsStore(Path.Combine(root, "settings"));
-        var settings = new UserSettings { Mode = 2, OvertimeColor = "#22CC88", PresenterPosition = OverlayPosition.BottomLeft, NumberFontName = "Arial" };
+        var settings = new UserSettings { Mode = 2, OvertimeColor = "#22CC88", PresenterPosition = OverlayPosition.BottomLeft, NumberFontName = "Arial", CountdownEndBehavior = CountdownEndBehavior.Stop };
         store.Save(settings);
         var loaded = store.Load();
         Equal(loaded.Mode, 0, "new session ignores last mode selection");
         Equal(loaded.NumberFontName, "Arial", "selected number font persists");
         Equal(loaded.GetOvertimeColor().ToArgb(), Color.FromArgb(0x22, 0xCC, 0x88).ToArgb(), "custom color persists");
         Equal(loaded.PresenterPosition, OverlayPosition.BottomLeft, "position persists");
+        Equal(loaded.CountdownEndBehavior, CountdownEndBehavior.Stop, "end behavior persists");
         settings.Mode = 0;
         store.Save(settings);
         Equal(store.Load().Mode, 0, "none persists");
         File.WriteAllText(store.FilePath, "not json");
         Equal(store.Load().CountdownSeconds, 600, "corrupt config falls back");
         File.WriteAllText(store.FilePath, "{}");
-        Check(store.Load().ShowOverlay && store.Load().FontSize == 1 && store.Load().NumberFontName == "Consolas", "missing configuration fields preserve defaults");
-        settings = new UserSettings { Mode = 999, CountdownSeconds = -2, OvertimeColor = "garbage", FontSize = 10, NumberFontName = "SlidePace Missing Font" };
+        Check(store.Load().CountdownEndBehavior == CountdownEndBehavior.ContinueCountUp && store.Load().FontSize == 1 && store.Load().NumberFontName == "Consolas", "missing configuration fields preserve defaults");
+        File.WriteAllText(store.FilePath, "{\"Mode\":2,\"CountdownSeconds\":5,\"ShowOverlay\":false}");
+        loaded = store.Load();
+        Check(loaded.Mode == 0 && loaded.CountdownSeconds == 5 && loaded.CountdownEndBehavior == CountdownEndBehavior.ContinueCountUp, "legacy hidden overlay settings load with new defaults");
+        store.Save(loaded);
+        Check(!File.ReadAllText(store.FilePath).Contains("ShowOverlay"), "obsolete display switch no longer persists");
+        settings = new UserSettings { Mode = 999, CountdownSeconds = -2, OvertimeColor = "garbage", FontSize = 10, NumberFontName = "SlidePace Missing Font", CountdownEndBehavior = (CountdownEndBehavior)999 };
         settings.Validate();
         Equal(settings.Mode, 0, "invalid mode fallback");
         Equal(settings.CountdownSeconds, 600, "invalid duration fallback");
         Equal(settings.GetOvertimeColor().ToArgb(), Color.Red.ToArgb(), "invalid color fallback");
         Equal(settings.NumberFontName, "Consolas", "unavailable number font falls back");
+        Equal(settings.CountdownEndBehavior, CountdownEndBehavior.ContinueCountUp, "invalid end behavior fallback");
         var plugin = new PowerPointAddIn(Path.Combine(root, "ribbon"));
         XDocument ribbon = XDocument.Parse(plugin.GetCustomUI("Microsoft.PowerPoint.Presentation"));
         Check(!ribbon.Descendants().Any(delegate(XElement element) { return (string)element.Attribute("id") == "ModeNone" || (string)element.Attribute("id") == "SlidePaceControls"; }), "ribbon has no clear-mode button or timer control group");
+        Check(!ribbon.Descendants().Any(delegate(XElement element) { return (string)element.Attribute("id") == "ShowOverlay" || (string)element.Attribute("id") == "SlidePaceDuration" || element.Name.LocalName == "editBox"; }), "ribbon omits display switch and duration group");
+        Equal((string)ribbon.Descendants().Single(delegate(XElement element) { return (string)element.Attribute("id") == "OpenSettings"; }).Attribute("label"), "计时器设置", "settings button renamed");
         foreach (XAttribute attribute in ribbon.Descendants().Attributes().Where(delegate(XAttribute item) { return item.Name.LocalName.StartsWith("on") || item.Name.LocalName.StartsWith("get"); }))
             Check(typeof(PowerPointAddIn).GetMethod(attribute.Value) != null, "ribbon callback exists: " + attribute.Value);
         Check(typeof(PowerPointAddIn).GetInterfaces().Any(delegate(Type type) { return type.GUID == new Guid("000C0396-0000-0000-C000-000000000046"); }), "ribbon COM interface");
@@ -277,14 +333,33 @@ internal static partial class Program
                 using (var dialog = new SettingsForm(settings, false))
                 {
                     dialog.Show();
+                    Pump(100);
                     ComboBox fontPicker = (ComboBox)dialog.Controls.Find("NumberFont", true).Single();
                     fontPicker.SelectedItem = "Arial";
-                    SaveWindow(dialog, Path.Combine(root, "settings-font.png"));
+                    ComboBox behaviorPicker = (ComboBox)dialog.Controls.Find("CountdownEndBehavior", true).Single();
+                    behaviorPicker.SelectedIndex = (int)CountdownEndBehavior.Stop;
+                    TableLayoutPanel table = dialog.Controls.OfType<TableLayoutPanel>().Single();
+                    Check(dialog.ClientSize.Width < 620 && dialog.ClientSize.Height < 620, "settings dialog is narrower and shorter");
+                    Check(!table.Controls.OfType<Label>().Any(delegate(Label label) { return label.Text.Contains("放映自动开始") || label.Text.Contains("-"); }), "settings removes heading and negative preview");
+                    Check(table.Controls.OfType<Label>().Any(delegate(Label label) { return label.Text == "00:00:00   00:00:01"; }), "font preview uses positive time examples");
+                    Check(!table.VerticalScroll.Visible && !table.HorizontalScroll.Visible, "compact settings fit without scrolling at current DPI");
+                    Check(table.Controls.Cast<Control>().All(delegate(Control control) { return dialog.ClientRectangle.Contains(dialog.RectangleToClient(control.Parent.RectangleToScreen(control.Bounds))); }), "all settings rows fit in dialog");
+                    FlowLayoutPanel footer = table.Controls.OfType<FlowLayoutPanel>().Single(delegate(FlowLayoutPanel panel) { return panel.Controls.OfType<Button>().Any(); });
+                    Check(footer.Controls.Cast<Control>().All(delegate(Control control) { return footer.ClientRectangle.Contains(control.Bounds); }), "footer buttons fit without clipping");
+                    Check(dialog.ClientSize.Height - dialog.PointToClient(footer.PointToScreen(new Point(0, footer.Bottom - footer.Top))).Y <= 24, "settings has compact bottom margin");
+                    SaveWindow(dialog, Path.Combine(root, "settings-compact.png"));
                     Button save = dialog.Controls.OfType<TableLayoutPanel>().Single().Controls.OfType<FlowLayoutPanel>()
                         .SelectMany(delegate(FlowLayoutPanel panel) { return panel.Controls.OfType<Button>(); }).Single(delegate(Button button) { return button.Text == "保存设置"; });
                     save.PerformClick();
                     Equal(dialog.Result.NumberFontName, "Arial", "font picker saves selected family");
+                    Equal(dialog.Result.CountdownEndBehavior, CountdownEndBehavior.Stop, "end behavior picker saves stop");
                     settings.NumberFontName = dialog.Result.NumberFontName;
+                }
+                using (var dialog = new SettingsForm(settings, true))
+                {
+                    dialog.Show();
+                    Check(!dialog.Controls.Find("CountdownEndBehavior", true).Single().Enabled, "running countdown locks end behavior");
+                    dialog.Close();
                 }
                 manager.ApplySettings(settings);
                 manager.Render(engine.Snapshot(), true);
@@ -307,7 +382,7 @@ internal static partial class Program
                 engine.Start();
                 time.Seconds = 7;
                 manager.Render(engine.Snapshot(), true);
-                Check(manager.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "-00:00:02" && form.DisplayColor.ToArgb() == Color.Red.ToArgb(); }), "overtime red and same readout on both screens");
+                Check(manager.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "00:00:02" && form.DisplayColor.ToArgb() == Color.Red.ToArgb(); }), "positive overtime red and same readout on both screens");
                 settings.OvertimeColor = "#22CC88";
                 manager.Render(engine.Snapshot(), true);
                 Check(first.DisplayColor.ToArgb() == Color.FromArgb(0x22, 0xCC, 0x88).ToArgb(), "custom overtime color");
@@ -329,6 +404,17 @@ internal static partial class Program
                 engine.Reset();
                 manager.Render(engine.Snapshot(), true);
                 Equal(first.DisplayColor.ToArgb(), Color.White.ToArgb(), "reset restores normal color");
+                engine.SetCountdownEndBehavior(CountdownEndBehavior.Stop);
+                engine.Start();
+                time.Seconds += 6;
+                manager.Render(engine.Snapshot(), true);
+                Check(manager.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "00:00:00" && form.DisplayColor.ToArgb() == settings.GetOvertimeColor().ToArgb(); }), "stop at zero uses selected end color on both screens");
+                buttons = first.Controls.OfType<Panel>().Single().Controls.OfType<Button>().ToList();
+                Check(!buttons.Single(delegate(Button button) { return button.Text == "开始"; }).Enabled && !buttons.Single(delegate(Button button) { return button.Text == "继续"; }).Enabled && buttons.Single(delegate(Button button) { return button.Text == "重置"; }).Enabled, "completed countdown only enables reset");
+                SaveWindow(first, Path.Combine(root, "overlay-stopped.png"));
+                engine.Reset();
+                manager.Render(engine.Snapshot(), true);
+                Equal(first.DisplayColor.ToArgb(), Color.White.ToArgb(), "stop reset restores white");
                 engine.SelectMode(TimerMode.Clock);
                 manager.Render(engine.Snapshot(), true);
                 Check(!first.ControlsVisible, "clock has no hover controls");
@@ -346,7 +432,10 @@ internal static partial class Program
         PowerPoint.Presentation presentation = null;
         PowerPoint.DocumentWindow previous = null;
         bool ownApplication = false;
-        var plugin = new PowerPointAddIn(Path.Combine(root, "office-config-" + Guid.NewGuid().ToString("N")));
+        string configuration = Path.Combine(root, "office-config-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(configuration);
+        File.WriteAllText(Path.Combine(configuration, "settings.json"), "{\"ShowOverlay\":false,\"CountdownSeconds\":2}");
+        var plugin = new PowerPointAddIn(configuration);
         Point pointer = Cursor.Position;
         Array custom = new object[0];
         try
@@ -358,6 +447,7 @@ internal static partial class Program
             if (app.SlideShowWindows.Count > 0) throw new InvalidOperationException("An existing user slide show is active; integration test will not disturb it.");
             plugin.OnConnection(app, 0, null, ref custom);
             Check(plugin.Engine != null, "connection initialized in actual PowerPoint");
+            Equal(plugin.Engine.Mode, TimerMode.None, "legacy configuration still starts deselected");
             presentation = app.Presentations.Add(Office.MsoTriState.msoTrue);
             var slide = presentation.Slides.Add(1, PowerPoint.PpSlideLayout.ppLayoutBlank);
             slide.FollowMasterBackground = Office.MsoTriState.msoFalse;
@@ -368,6 +458,8 @@ internal static partial class Program
             title.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.White);
             presentation.Slides.Add(2, PowerPoint.PpSlideLayout.ppLayoutBlank);
             presentation.SlideShowSettings.ShowType = PowerPoint.PpSlideShowType.ppShowTypeWindow;
+            plugin.SelectMode(TimerMode.CountUp);
+            Equal(plugin.Overlays.Forms.Count, 0, "preselecting mode in editor creates no overlay");
             PowerPoint.SlideShowWindow show = presentation.SlideShowSettings.Run();
             show.Activate();
             ActivateTestWindow(new IntPtr(show.HWND));
@@ -377,7 +469,11 @@ internal static partial class Program
             Console.WriteLine("Foreground: " + ShowWindows.Describe(GetForegroundWindow()));
             Until(delegate { return plugin.Engine.IsSlideShowActive; }, 5000, "actual show auto detection");
             Check(plugin.BeginEventCount > 0, "PowerPoint raised SlideShowBegin, not just polling");
-            Equal(plugin.Overlays.Forms.Count, 0, "none in actual show displays no box");
+            Until(delegate { return plugin.Overlays.Forms.Count == 1; }, 1500, "preselected mode immediately displays despite legacy ShowOverlay=false");
+            Check(plugin.Engine.Snapshot().IsRunning, "preselected mode auto starts without overlay interaction");
+            CheckVisibleOverlay(plugin.Overlays.Forms[0], Path.Combine(root, "preselected-windowed.png"));
+            plugin.SelectMode(TimerMode.None);
+            Equal(plugin.Overlays.Forms.Count, 0, "deselecting during actual show displays no box");
             plugin.SelectMode(TimerMode.CountUp);
             Pump(1200);
             Check(plugin.Engine.Snapshot().IsRunning && plugin.Engine.Snapshot().ElapsedSeconds >= 1, "actual host auto starts count up");
@@ -404,11 +500,25 @@ internal static partial class Program
             plugin.ApplySettings(settings);
             Pump(3300);
             Check(plugin.Engine.Snapshot().IsRunning && plugin.Engine.Snapshot().IsOvertime, "actual countdown continues past zero");
-            Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return form.DisplayText.StartsWith("-") && form.DisplayColor.ToArgb() == Color.FromArgb(0x22, 0xCC, 0x88).ToArgb(); }), "actual overtime color on both screens");
+            Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return !form.DisplayText.StartsWith("-") && form.DisplayText != "00:00:00" && form.DisplayColor.ToArgb() == Color.FromArgb(0x22, 0xCC, 0x88).ToArgb(); }), "actual positive overtime with custom color on both screens");
             Rectangle compact = plugin.Overlays.Forms[0].CompactBounds;
             Cursor.Position = new Point(compact.Left + compact.Width / 2, compact.Top + compact.Height / 2);
             Pump(150);
             CheckVisibleOverlay(plugin.Overlays.Forms[0], Path.Combine(root, "powerpoint-overlay.png"));
+            plugin.StartPause();
+            plugin.Reset();
+            settings.CountdownEndBehavior = CountdownEndBehavior.Stop;
+            settings.OvertimeColor = "#FF0000";
+            plugin.ApplySettings(settings);
+            plugin.StartPause();
+            Pump(2600);
+            Check(plugin.Engine.Snapshot().IsCompleted && !plugin.Engine.Snapshot().IsRunning, "actual countdown stops at zero");
+            Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "00:00:00" && form.DisplayColor.ToArgb() == Color.Red.ToArgb(); }), "actual stopped countdown zero and red");
+            show.View.GotoSlide(1);
+            plugin.Continue();
+            Pump(250);
+            Check(plugin.Engine.IsSlideShowActive && plugin.Engine.Snapshot().IsCompleted && !plugin.Engine.Snapshot().IsRunning, "completed countdown cannot resume through paging or continue");
+            CheckVisibleOverlay(plugin.Overlays.Forms[0], Path.Combine(root, "powerpoint-stopped.png"));
             plugin.SelectMode(TimerMode.Clock);
             Pump(150);
             Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return !form.ControlsVisible; }), "actual clock hides controls");
@@ -433,21 +543,26 @@ internal static partial class Program
             plugin.SelectMode(TimerMode.Clock);
             Pump(200);
             Equal(plugin.Overlays.Forms.Count, 0, "clock selected in editor does not create overlay");
-            plugin.SelectMode(TimerMode.CountUp);
+            plugin.SelectMode(TimerMode.CountDown);
             Console.WriteLine("Office stage: repeat windowed show");
             show = presentation.SlideShowSettings.Run();
             Until(delegate { return plugin.Engine.IsSlideShowActive; }, 5000, "repeat show detected");
-            Check(plugin.Engine.Snapshot().IsRunning, "repeat show auto resumes");
+            Check(plugin.Engine.Snapshot().IsCompleted && !plugin.Engine.Snapshot().IsRunning, "repeat show preserves completed countdown");
             show.View.Exit();
             Pump(200);
             presentation.SlideShowSettings.ShowType = PowerPoint.PpSlideShowType.ppShowTypeSpeaker;
             presentation.SlideShowSettings.ShowPresenterView = Screen.AllScreens.Length > 1 ? Office.MsoTriState.msoTrue : Office.MsoTriState.msoFalse;
+            presentation.SlideShowSettings.StartingSlide = 2;
+            presentation.SlideShowSettings.EndingSlide = 2;
+            presentation.SlideShowSettings.RangeType = PowerPoint.PpSlideShowRangeType.ppShowSlideRange;
+            plugin.SelectMode(TimerMode.CountUp);
             Console.WriteLine("Office stage: start full-screen presenter show");
             show = presentation.SlideShowSettings.Run();
             show.Activate();
             ActivateTestWindow(new IntPtr(show.HWND));
             Pump(1200);
             Console.WriteLine("Full-screen host: " + ShowWindows.Describe(new IntPtr(show.HWND)));
+            Equal(show.View.Slide.SlideIndex, 2, "full-screen verification starts from selected current page");
             Equal(plugin.Overlays.Forms.Count, Math.Min(2, Screen.AllScreens.Length), "full-screen audience and actual presenter view both have overlays");
             foreach (OverlayForm form in plugin.Overlays.Forms)
             {
@@ -456,6 +571,28 @@ internal static partial class Program
             }
             show.View.Exit();
             Pump(300);
+            plugin.SelectMode(TimerMode.CountDown);
+            plugin.Reset();
+            show = presentation.SlideShowSettings.Run();
+            Pump(2700);
+            Check(plugin.Engine.Snapshot().IsCompleted && plugin.Overlays.Forms.Count == Math.Min(2, Screen.AllScreens.Length), "full-screen preselected countdown auto starts and completes");
+            Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "00:00:00" && form.DisplayColor.ToArgb() == Color.Red.ToArgb(); }), "full-screen stop shares zero and red across presenter and audience");
+            foreach (OverlayForm form in plugin.Overlays.Forms)
+                CheckVisibleOverlay(form, Path.Combine(root, form.IsPresenter ? "presenter-stopped.png" : "audience-stopped.png"));
+            show.View.Exit();
+            Pump(300);
+            plugin.SelectMode(TimerMode.Clock);
+            show = presentation.SlideShowSettings.Run();
+            Until(delegate { return plugin.Overlays.Forms.Count == Math.Min(2, Screen.AllScreens.Length); }, 1500, "preselected clock displays without interaction");
+            Check(plugin.Overlays.Forms.All(delegate(OverlayForm form) { return !form.ControlsVisible && form.DisplayText.Length == 8; }), "preselected clock immediately displays current time with no controls");
+            show.View.Exit();
+            Pump(300);
+            plugin.SelectMode(TimerMode.None);
+            show = presentation.SlideShowSettings.Run();
+            Pump(300);
+            Check(plugin.Overlays.Forms.Count == 0 && !plugin.Engine.Snapshot().IsRunning, "no selected mode starts show with no timer or controls");
+            show.View.Exit();
+            Pump(200);
             plugin.OnDisconnection(0, ref custom);
             presentation.Saved = Office.MsoTriState.msoTrue;
             presentation.Close();

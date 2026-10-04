@@ -25,7 +25,15 @@ evidence = ['office/powerpoint-overlay.png',
             'v1.0.2/ui/overlay-overtime.png',
             'v1.0.2/office/powerpoint-overlay.png',
             'v1.0.2/office/audience-overlay.png',
-            'v1.0.2/office/presenter-overlay.png']
+            'v1.0.2/office/presenter-overlay.png',
+            'v1.0.3/ui/settings-compact.png',
+            'v1.0.3/ui/overlay-overtime.png',
+            'v1.0.3/ui/overlay-overtime-compact.png',
+            'v1.0.3/office/preselected-windowed.png',
+            'v1.0.3/office/powerpoint-stopped.png',
+            'v1.0.3/office/audience-stopped.png',
+            'v1.0.3/office/presenter-stopped.png',
+            'v1.0.3/setup-ui/installer.png']
 for source, target in documents:
     content = (root / source).read_text(encoding='utf-8')
     content = content.replace('./SlidePace-PowerPoint插件需求文档.md', './需求文档.md')

@@ -34,7 +34,11 @@ namespace SlidePace
             modeChanged = onModeChanged;
         }
 
-        public void SetHostWindows(IntPtr host, IntPtr show) { hostWindow = host; slideShowWindow = show; signature = ""; }
+        public void SetHostWindows(IntPtr host, IntPtr show)
+        {
+            if (hostWindow == host && slideShowWindow == show) return;
+            hostWindow = host; slideShowWindow = show; signature = "";
+        }
         public void ApplySettings(UserSettings value) { settings = value; signature = ""; }
         public void ResetCollapsed() { collapsed = false; signature = ""; }
 
@@ -45,7 +49,7 @@ namespace SlidePace
 
         public void Render(TimerSnapshot snapshot, bool active)
         {
-            if (!active || snapshot.Mode == TimerMode.None || !settings.ShowOverlay)
+            if (!active || snapshot.Mode == TimerMode.None)
             {
                 CloseForms();
                 return;

@@ -55,7 +55,10 @@ internal static partial class Program
             app.Visible = Office.MsoTriState.msoTrue;
             presentation = app.Presentations.Add(Office.MsoTriState.msoTrue);
             presentation.Slides.Add(1, PowerPoint.PpSlideLayout.ppLayoutBlank);
-            installer.Install();
+            string payload = installer.Install();
+            string configuration = Path.Combine(Path.GetDirectoryName(payload), "validation-data");
+            Directory.CreateDirectory(configuration);
+            File.WriteAllText(Path.Combine(configuration, "settings.json"), "{\"ShowOverlay\":false}");
             app.COMAddIns.Update();
             object name = InstallerEngine.ProgId;
             addin = app.COMAddIns.Item(ref name);
@@ -79,6 +82,10 @@ internal static partial class Program
             Pump(250);
             AutomationElement clearButton = host.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "全部取消 · 不显示"));
             Check(clearButton == null, "actual ribbon omits redundant clear-mode control");
+            Check(host.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "显示计时")) == null, "actual ribbon omits display toggle");
+            Check(host.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "倒计时时长")) == null, "actual ribbon omits separate duration group");
+            Check(host.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "计时器设置")) != null, "actual ribbon contains renamed settings button");
+            SaveHostWindow(new IntPtr(app.HWND), Path.Combine(root, "powerpoint-ribbon.png"));
             Check(Status(automation).StartsWith("None|"), "new PowerPoint session starts with no selected mode");
             AutomationElement upButton = host.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "顺计时"));
             Check(upButton != null, "actual ribbon contains count-up mode button");
@@ -99,7 +106,7 @@ internal static partial class Program
             title.TextFrame.TextRange.Font.Color.RGB = ColorTranslator.ToOle(Color.White);
             presentation.SlideShowSettings.ShowType = PowerPoint.PpSlideShowType.ppShowTypeSpeaker;
             PowerPoint.SlideShowWindow show = presentation.SlideShowSettings.Run();
-            Until(delegate { return Status(automation).Split('|')[2] == "True"; }, 5000, "registered plugin auto starts on actual full-screen show");
+            Until(delegate { string[] value = Status(automation).Split('|'); return value[2] == "True" && int.Parse(value[3]) >= 1; }, 1500, "registered plugin auto displays preselected mode despite old disabled setting");
             Pump(1200);
             string[] running = Status(automation).Split('|');
             Equal(running[3], Math.Min(2, System.Windows.Forms.Screen.AllScreens.Length).ToString(), "registered plugin displays both screen overlays");
@@ -134,6 +141,17 @@ internal static partial class Program
         }
     }
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    private static void SaveHostWindow(IntPtr window, string path)
+    {
+        WindowRectangle bounds;
+        if (!GetWindowRect(window, out bounds)) throw new InvalidOperationException("Host window bounds unavailable");
+        using (var image = new Bitmap(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top))
+        using (Graphics graphics = Graphics.FromImage(image))
+        {
+            graphics.CopyFromScreen(new Point(bounds.Left, bounds.Top), Point.Empty, image.Size);
+            image.Save(path, ImageFormat.Png);
+        }
+    }
     [StructLayout(LayoutKind.Sequential)] private struct WindowRectangle { public int Left, Top, Right, Bottom; }
     private delegate bool WindowVisitor(IntPtr window, IntPtr parameter);
     [DllImport("user32.dll")] private static extern bool EnumWindows(WindowVisitor visitor, IntPtr parameter);

@@ -82,7 +82,7 @@ namespace SlidePace.Setup
     {
         public const string ClassId = "{B18A80F9-540D-4F9A-9F1D-A4798AC2A398}";
         public const string ProgId = "SlidePace.PowerPointAddIn";
-        public const string ProductVersion = "1.0.2";
+        public const string ProductVersion = "1.0.3";
         public const string Marker = "slidepace-installation.txt";
         private readonly InstallOptions options;
         private readonly Action<string, int> progress;

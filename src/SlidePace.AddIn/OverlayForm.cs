@@ -108,7 +108,7 @@ namespace SlidePace
                 target.MouseLeave += delegate { RefreshHover(); };
             }
             var menu = new ContextMenuStrip();
-            menu.Items.Add("框体设置…", null, delegate { if (SettingsRequested != null) SettingsRequested(); });
+            menu.Items.Add("计时器设置…", null, delegate { if (SettingsRequested != null) SettingsRequested(); });
             menu.Items.Add("收起／展开框体", null, delegate { if (CollapseRequested != null) CollapseRequested(); });
             menu.Items.Add(new ToolStripSeparator());
             foreach (TimerMode mode in Enum.GetValues(typeof(TimerMode)))
@@ -293,7 +293,7 @@ namespace SlidePace
             digits.ForeColor = color;
             start.Text = value.IsRunning ? "暂停" : "开始";
             start.Enabled = value.IsRunning || !value.HasStarted;
-            resume.Enabled = value.HasStarted && !value.IsRunning;
+            resume.Enabled = value.HasStarted && !value.IsRunning && !value.IsCompleted;
             reset.Enabled = true;
             foreach (ToolStripItem entry in ContextMenuStrip.Items)
             {

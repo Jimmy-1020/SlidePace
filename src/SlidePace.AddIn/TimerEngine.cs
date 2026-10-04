@@ -5,6 +5,7 @@ using System.Globalization;
 namespace SlidePace
 {
     public enum TimerMode { None, CountUp, CountDown, Clock }
+    public enum CountdownEndBehavior { ContinueCountUp, Stop }
 
     public interface ITimeSource
     {
@@ -26,6 +27,7 @@ namespace SlidePace
         public bool IsRunning { get; internal set; }
         public bool HasStarted { get; internal set; }
         public bool IsOvertime { get; internal set; }
+        public bool IsCompleted { get; internal set; }
         public double ElapsedSeconds { get; internal set; }
     }
 
@@ -37,6 +39,7 @@ namespace SlidePace
             public double Anchor;
             public bool Running;
             public bool Started;
+            public bool Completed;
             public double Elapsed(double now) { return Accumulated + (Running ? Math.Max(0, now - Anchor) : 0); }
             public void Start(double now)
             {
@@ -50,7 +53,7 @@ namespace SlidePace
                 Accumulated = Elapsed(now);
                 Running = false;
             }
-            public void Reset() { Accumulated = 0; Running = false; Started = false; }
+            public void Reset() { Accumulated = 0; Running = false; Started = false; Completed = false; }
         }
 
         private readonly ITimeSource time;
@@ -59,6 +62,7 @@ namespace SlidePace
         public TimerMode Mode { get; private set; }
         public bool IsSlideShowActive { get; private set; }
         public int CountdownSeconds { get; private set; }
+        public CountdownEndBehavior EndBehavior { get; private set; }
 
         public TimerEngine(ITimeSource source)
         {
@@ -91,6 +95,7 @@ namespace SlidePace
         public void EndSlideShow()
         {
             double now = time.MonotonicSeconds;
+            UpdateCountdown(now);
             up.Pause(now);
             down.Pause(now);
             IsSlideShowActive = false;
@@ -98,14 +103,18 @@ namespace SlidePace
 
         public void Start()
         {
+            double now = time.MonotonicSeconds;
+            UpdateCountdown(now);
             Counter counter = Current;
-            if (IsSlideShowActive && counter != null) counter.Start(time.MonotonicSeconds);
+            if (IsSlideShowActive && counter != null && !counter.Completed) counter.Start(now);
         }
 
         public void Pause()
         {
+            double now = time.MonotonicSeconds;
+            UpdateCountdown(now);
             Counter counter = Current;
-            if (counter != null) counter.Pause(time.MonotonicSeconds);
+            if (counter != null) counter.Pause(now);
         }
 
         public void Reset()
@@ -117,14 +126,35 @@ namespace SlidePace
         public void SetCountdownSeconds(int seconds)
         {
             if (seconds < 1 || seconds > 86399) throw new ArgumentOutOfRangeException("seconds", "时长须在 00:00:01 至 23:59:59 之间。");
+            UpdateCountdown(time.MonotonicSeconds);
             if (seconds == CountdownSeconds) return;
             if (down.Running) throw new InvalidOperationException("请先暂停倒计时，再修改时长。");
             CountdownSeconds = seconds;
             down.Reset();
         }
 
+        public void SetCountdownEndBehavior(CountdownEndBehavior behavior)
+        {
+            if (!Enum.IsDefined(typeof(CountdownEndBehavior), behavior)) throw new ArgumentOutOfRangeException("behavior");
+            UpdateCountdown(time.MonotonicSeconds);
+            if (behavior == EndBehavior) return;
+            if (down.Running) throw new InvalidOperationException("请先暂停倒计时，再修改结束行为。");
+            EndBehavior = behavior;
+        }
+
+        private void UpdateCountdown(double now)
+        {
+            if (EndBehavior != CountdownEndBehavior.Stop || !down.Started || down.Completed || down.Elapsed(now) < CountdownSeconds) return;
+            // Freeze at the exact deadline even when a refresh or pause arrives late.
+            down.Accumulated = CountdownSeconds;
+            down.Running = false;
+            down.Completed = true;
+        }
+
         public TimerSnapshot Snapshot()
         {
+            double now = time.MonotonicSeconds;
+            UpdateCountdown(now);
             var result = new TimerSnapshot { Mode = Mode, Text = "", Status = "未选择模式" };
             if (Mode == TimerMode.None) return result;
             if (Mode == TimerMode.Clock)
@@ -134,9 +164,10 @@ namespace SlidePace
                 return result;
             }
             Counter counter = Current;
-            double elapsed = counter.Elapsed(time.MonotonicSeconds);
+            double elapsed = counter.Elapsed(now);
             result.IsRunning = counter.Running;
             result.HasStarted = counter.Started;
+            result.IsCompleted = counter.Completed;
             result.ElapsedSeconds = elapsed;
             result.IsOvertime = Mode == TimerMode.CountDown && elapsed >= CountdownSeconds;
             if (Mode == TimerMode.CountUp) result.Text = FormatSeconds((long)Math.Floor(elapsed));
@@ -144,10 +175,10 @@ namespace SlidePace
             else
             {
                 long overtime = (long)Math.Floor(elapsed - CountdownSeconds);
-                result.Text = (overtime > 0 ? "-" : "") + FormatSeconds(overtime);
+                result.Text = FormatSeconds(overtime);
             }
             result.Status = !counter.Started ? "未开始" : counter.Running ? "运行中" : "已暂停";
-            if (result.IsOvertime) result.Status = counter.Running ? "超时" : "超时 · 已暂停";
+            if (result.IsOvertime) result.Status = counter.Completed ? "已结束" : counter.Running ? "归零后顺计时" : "归零后顺计时 · 已暂停";
             return result;
         }
 

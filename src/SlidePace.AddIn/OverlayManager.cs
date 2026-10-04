@@ -88,9 +88,6 @@ namespace SlidePace
         {
             var form = new OverlayForm(surface.Device, surface.Presenter);
             form.DisplayArea = surface.Bounds;
-            // Full-screen PowerPoint surfaces can themselves be topmost. Keep the
-            // overlay above them; Capture restricts its lifetime to visible show views.
-            form.TopMost = true;
             form.ApplySettings(settings, collapsed);
             form.StartPauseRequested += startPause;
             form.ContinueRequested += resume;
@@ -104,6 +101,9 @@ namespace SlidePace
             forms.Add(form);
             if (surface.Window != IntPtr.Zero) form.Show(new NativeOwner(surface.Window));
             else form.Show();
+            // Both WinForms' TopMost setter and first-show focus path can activate
+            // the timer. Promote only through native SWP_NOACTIVATE positioning.
+            form.KeepAboveShow();
         }
 
         private Point GetLocation(Rectangle area, string device, Size size, bool presenter)

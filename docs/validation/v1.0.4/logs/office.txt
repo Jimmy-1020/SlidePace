@@ -1,0 +1,11 @@
+Windowed host: window=8196536, class=mdiClass, visible=True, minimized=False, client={X=0,Y=23,Width=1920,Height=1009}, root=2889210, foreground=2889210, foregroundRoot=2889210
+Windowed root: window=2889210, class=PPTFrameClass, visible=True, minimized=False, client={X=0,Y=23,Width=1920,Height=1009}, root=2889210, foreground=2889210, foregroundRoot=2889210
+Host editor: window=2889210, class=PPTFrameClass, visible=True, minimized=False, client={X=0,Y=23,Width=1920,Height=1009}, root=2889210, foreground=2889210, foregroundRoot=2889210
+Foreground: window=2889210, class=PPTFrameClass, visible=True, minimized=False, client={X=0,Y=23,Width=1920,Height=1009}, root=2889210, foreground=2889210, foregroundRoot=2889210
+Office stage: switch to editor
+Office stage: return to windowed show
+Office stage: repeat windowed show
+Office stage: start full-screen presenter show
+Full-screen host: window=7409814, class=screenClass, visible=True, minimized=False, client={X=1920,Y=0,Width=1920,Height=1080}, root=7409814, foreground=7409814, foregroundRoot=7409814
+Actual Office version: 16.0; begin events: 6; end events: 6
+PASS --office (56 assertions)

@@ -1,0 +1,2 @@
+Installer preflight Office file version: 16.0.20430.20118
+PASS --setup-ui (6 assertions)

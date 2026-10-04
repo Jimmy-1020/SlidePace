@@ -21,6 +21,8 @@
     <Reference Include="Office"><HintPath>$(OfficePiaRoot)\Office\15.0.0.0__71e9bce111e9429c\office.dll</HintPath><EmbedInteropTypes>true</EmbedInteropTypes></Reference>
     <Compile Include="Program.cs" />
     <Compile Include="HostLoading.cs" />
+    <Compile Include="EscapeIntegration.cs" />
+    <Compile Include="NativeEscapeHost.cs" />
     <Compile Include="NativeComContract.cs" />
     <Compile Include="SetupInterface.cs" />
     <ProjectReference Include="..\src\SlidePace.AddIn\SlidePace.AddIn.csproj"><Project>{C796B33C-417F-41AE-834C-A9875A39C901}</Project><Name>SlidePace.AddIn</Name></ProjectReference>

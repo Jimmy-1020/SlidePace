@@ -43,6 +43,9 @@ internal static partial class Program
             else if (suite == "--ui") UserInterface();
             else if (suite == "--office") OfficeIntegration();
             else if (suite == "--host-load") HostLoading();
+            else if (suite == "--esc-installed") EscapeIntegration(false);
+            else if (suite == "--esc-native") EscapeIntegration(true);
+            else if (suite == "--focus-ui") OverlayFocusIntegration();
             else if (suite == "--com-abi") NativeComContract();
             else if (suite == "--setup-ui") SetupInterface();
             else throw new ArgumentException("Unknown suite: " + suite);
@@ -480,7 +483,7 @@ internal static partial class Program
             Equal(plugin.Overlays.Forms.Count, 1, "windowed show has one overlay inside the actual show");
             System.Drawing.Rectangle showArea;
             Check(ShowWindows.TryGetBounds(new IntPtr(show.HWND), out showArea) && showArea.Contains(plugin.Overlays.Forms[0].Bounds), "actual overlay stays in show client area");
-            Check(plugin.Overlays.Forms[0].TopMost && GetWindow(plugin.Overlays.Forms[0].Handle, 4) == ShowWindows.Root(new IntPtr(show.HWND)),
+            Check((GetWindowLong(plugin.Overlays.Forms[0].Handle, -20) & 8) != 0 && GetWindow(plugin.Overlays.Forms[0].Handle, 4) == ShowWindows.Root(new IntPtr(show.HWND)),
                 "actual overlay stays above and is owned by the show root");
             Check(plugin.Overlays.Forms.Select(delegate(OverlayForm form) { return form.DisplayText; }).Distinct().Count() == 1, "actual displays synchronized");
             show.View.Next();

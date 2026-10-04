@@ -1,0 +1,2 @@
+Installer uses isolated test registry prefix; Office registration was not changed.
+PASS --installer (19 assertions)

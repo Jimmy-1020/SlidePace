@@ -1,8 +1,8 @@
 # SlidePace GitHub 发布说明
 
-当前版本为 `1.0.3`。源码放在 GitHub 仓库，用户安装文件放在 Releases。
+当前版本为 `1.0.4`，源码放在 GitHub 仓库，用户安装文件放在 [Releases](https://github.com/Jimmy-1020/SlidePace/releases/tag/v1.0.4)。
 
-本次为 1.0.3 的文档修订，需求文档更新至 v0.8.1：明确演示者视图也显示计时器、默认位置可能遮挡预览，以及现有的位置设置和拖动方法。插件程序及安装 EXE 保持原版本。
+1.0.4 修复计时框抢占焦点导致的 Esc 退出问题，并增加宿主焦点与真实键盘双屏退出验证；需求文档为 v0.9.1，演示者内容避让仍待实现。本次通过新标签 `v1.0.4` 发布，保留原 1.0.3 发布记录。
 
 项目仓库：[Jimmy-1020/SlidePace](https://github.com/Jimmy-1020/SlidePace)。
 
@@ -12,7 +12,7 @@
 - `tests/`：核心、界面、安装隔离及 PowerPoint 集成验证。
 - `tools/`、`build.cmd`、`SlidePace.sln`：构建和打包入口。
 - `assets/`：产品图标。
-- `docs/validation/`：文档引用的历史及当前版本截图。
+- `docs/validation/`：文档引用的历史及当前版本截图、验证日志。
 - `README.md`、需求文档、验证报告：中文项目说明与实际验收范围。
 
 `.gitignore` 排除生成文件、安装包、Visual Studio 本地配置及临时测试数据。文档截图作为仓库文件保留。
@@ -39,13 +39,13 @@ Python 构建脚本会通过 `vswhere` 或 PATH 查找 MSBuild，也支持通过
 ## 发布安装包
 
 1. 在 GitHub 仓库打开 **Releases → Draft a new release**。
-2. 为当前源码创建 `v1.0.3` 标签，标题填写 `SlidePace 1.0.3`。
+2. 为修复源码创建 `v1.0.4` 标签，标题填写 `SlidePace 1.0.4`；保留原 `v1.0.3` 标签。
 3. 上传 `dist` 中的 `SlidePace-Setup.exe`、`SlidePace-Source.zip`、`SHA256SUMS.txt`。如需完整说明，也上传中文 Markdown 文档及验证截图目录的压缩包。
 4. 发布说明中写明适用于 Windows 64 位 PowerPoint，用户先保存并关闭 PowerPoint，再运行 EXE；列出本次改动及验证报告链接。
 
 GitHub 会自动提供标签对应的源码 ZIP，项目生成的 `SlidePace-Source.zip` 则额外作为已核对的交付源码包。安装使用端无需 Visual Studio 或 Python。
 
-## 已发布版本的文档修订
+## 1.0.3 已发布版本的文档修订记录
 
 说明修订提交到 `main`，保留原 `v1.0.3` 标签。发布页注明本次文档提交，并更新 `SlidePace-Source.zip`、`SlidePace-1.0.3-Windows-x64.zip` 和 `SHA256SUMS.txt`，确保下载包中的说明与仓库一致。安装 EXE 的内容及校验和保持不变。
 

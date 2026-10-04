@@ -1,13 +1,13 @@
 # SlidePace PowerPoint 计时插件
 
-Windows PowerPoint 放映计时插件，版本 1.0.3。打开 [需求文档](./SlidePace-PowerPoint插件需求文档.md) 可查看完整功能定义。
+Windows PowerPoint 放映计时插件，版本 1.0.4。打开 [需求文档](./SlidePace-PowerPoint插件需求文档.md) 可查看完整功能定义。
 
-下载安装包：[GitHub Releases](https://github.com/Jimmy-1020/SlidePace/releases/latest)。
+1.0.4 修复计时框抢占键盘焦点造成的 Esc 无法退出，以及演示者侧画面异常、观众侧仍在放映的问题。下载安装程序：[SlidePace 1.0.4](https://github.com/Jimmy-1020/SlidePace/releases/tag/v1.0.4)。源码目录中的安装包位于 `dist/SlidePace-Setup.exe`。
 
 ## 安装与使用
 
 1. 保存并关闭所有 PowerPoint 窗口。
-2. 双击安装包中的 `SlidePace-Setup.exe`，等待自动安装完成；源码目录中的安装文件位于 `dist`。
+2. 双击安装程序 `SlidePace-Setup.exe`，等待自动安装完成；源码目录中的安装文件位于 `dist`。
 3. 重新打开 PowerPoint，在“SlidePace 计时”选项卡选择一种模式。
 4. 若选择倒计时，在“计时器设置”中设置时长，例如 `00:10:00`，并选择归零后“停止计时”或“继续顺计时”。
 5. 启动放映，计时自动开始。每次打开 PowerPoint 都默认全部不选，因此需要先选择一种模式。
@@ -36,6 +36,8 @@ Windows PowerPoint 放映计时插件，版本 1.0.3。打开 [需求文档](./S
 右键框体可打开设置、收起／展开或切换模式；再次点击菜单中已选模式也可取消。收起不停止计时。是否显示由模式选择决定：全部未选时不显示，选择模式后在放映中自动显示，无需额外开关。旧配置曾关闭显示也不会阻止计时器出现。
 
 切回编辑界面或其他窗口覆盖某一放映视图时，该视图上的框体隐藏，计时继续；返回放映视图后恢复显示。结束放映自动暂停并隐藏所有框体。同一次 PowerPoint 会话内再次放映会继续保留的读数；已经完成且选择到零停止的倒计时保持零及结束颜色。需要从头计时，请在放映框体上点击“重置”，再点“开始”。重启 PowerPoint 后所有模式均未选中，重新选择计时模式后从初始读数开始。
+
+选择倒计时后启动放映，无需先点击观众画面即可按 Esc 退出；点击演示者侧后按 Esc 也应结束整场放映，两侧计时框一起消失。1.0.4 使用无激活的原生置顶接口，保留 PowerPoint 的键盘焦点，不额外接管 Esc。
 
 ## 卸载与更新
 
@@ -72,9 +74,13 @@ tests\bin\Release\SlidePace.Tests.exe --installer artifacts\installer
 tests\bin\Release\SlidePace.Tests.exe --office artifacts\office
 tests\bin\Release\SlidePace.Tests.exe --com-abi artifacts\com-abi
 tests\bin\Release\SlidePace.Tests.exe --setup-ui artifacts\setup-ui
+tests\bin\Release\SlidePace.Tests.exe --focus-ui artifacts\focus-ui
+tests\bin\Release\SlidePace.Tests.exe --esc-native artifacts\esc-native
 ```
 
 `--office` 使用测试创建的临时文稿，保留用户原有文稿；若已有活动放映，则中止测试。`--installer` 使用独立测试注册键，不注册到 Office。`--com-abi` 经非托管 COM 方法表调用生命周期接口，检查原生参数封送；`--setup-ui` 在工作目录与测试注册键中验证实际自动安装／卸载界面及环境预检。
+
+`--focus-ui` 验证首次显示、刷新、悬停及重建框体时保留宿主子控件的焦点。`--esc-native` 使用独立临时 COM 标识，让 PowerPoint 在进程内加载本次构建的 Release DLL；现有正式插件临时取消计时，结束后恢复原模式并删除测试注册。测试创建临时文稿，以实际 F5 和 Esc 验证三种模式及未选模式的启动、演示者侧点击、双侧退出与浮层清理；启动后不主动激活放映窗口。已有活动放映时中止。`--esc-installed` 可对已安装版本执行倒计时及未选模式的同类诊断，1.0.3 的两条 Esc 路径已复现失败。测试均不会强制关闭用户 PowerPoint 或已有文稿。
 
 `--host-load` 用于 Office 自主加载验证：先在 Visual Studio 中生成 Debug 配置的 AddIn 项目，再运行 `tests\bin\Release\SlidePace.Tests.exe --host-load artifacts\host-load`，使用临时工作目录和临时真实加载项注册检查 Ribbon、全屏放映和双屏浮层可见性。测试结束移除临时注册；Debug 配置仅在工作目录写入数据。正式发布使用 Release 配置。此验证要求 PowerPoint 中没有打开的文稿，已有正式 SlidePace 安装或活动放映时中止。1.0.3 本轮因检测到已有正式注册而未执行自主加载；已通过的真实放映测试使用新版 Release DLL，详情见验证报告。
 

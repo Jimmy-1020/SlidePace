@@ -76,7 +76,8 @@ namespace SlidePace
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.Manual;
             ShowInTaskbar = false;
-            TopMost = true;
+            // Leave WinForms TopMost false: its focus paths activate the form.
+            // KeepAboveShow promotes the native window without activation.
             AutoScaleMode = AutoScaleMode.None;
             DoubleBuffered = true;
             BackColor = Color.FromArgb(22, 29, 39);

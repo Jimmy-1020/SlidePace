@@ -1,0 +1,14 @@
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+libpng warning: iCCP: known incorrect sRGB profile
+UI before render foreground=5509264:WindowsForms10.Window.8.app.0.141b42a_r6_ad1 owner=5509264:WindowsForms10.Window.8.app.0.141b42a_r6_ad1
+UI after render foreground=5509264:WindowsForms10.Window.8.app.0.141b42a_r6_ad1 timer=7083090:WindowsForms10.Window.8.app.0.141b42a_r6_ad1
+libpng warning: iCCP: known incorrect sRGB profile
+PASS --focus-ui (10 assertions)

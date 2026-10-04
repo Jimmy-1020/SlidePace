@@ -38,6 +38,7 @@ for source, target in documents:
     content = (root / source).read_text(encoding='utf-8')
     content = content.replace('./SlidePace-PowerPoint插件需求文档.md', './需求文档.md')
     content = content.replace('./README.md', './使用说明.md')
+    content = content.replace('./docs/validation/v1.0.4/logs', './验证日志/v1.0.4')
     for relative in evidence:
         content = content.replace('./docs/validation/' + relative,
                                   './验证截图/' + relative)
@@ -52,6 +53,12 @@ for relative in evidence:
     legacy = screenshots / Path(relative).name
     if legacy.is_file():
         legacy.unlink()
+
+validation_logs = root / 'docs/validation/v1.0.4/logs'
+for path in sorted(validation_logs.glob('*.txt')):
+    target = dist / '验证日志/v1.0.4' / path.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(path, target)
 
 with zipfile.ZipFile(dist / 'SlidePace-Source.zip', 'w', compression=zipfile.ZIP_DEFLATED) as archive:
     folders = [root / 'src', root / 'tests', root / 'tools', root / 'assets', root / 'docs']

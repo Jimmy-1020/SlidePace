@@ -2,6 +2,8 @@
 
 当前版本为 `1.0.3`。源码放在 GitHub 仓库，用户安装文件放在 Releases。
 
+本次为 1.0.3 的文档修订，需求文档更新至 v0.8.1：明确演示者视图也显示计时器、默认位置可能遮挡预览，以及现有的位置设置和拖动方法。插件程序及安装 EXE 保持原版本。
+
 项目仓库：[Jimmy-1020/SlidePace](https://github.com/Jimmy-1020/SlidePace)。
 
 ## 仓库内容
@@ -42,3 +44,9 @@ Python 构建脚本会通过 `vswhere` 或 PATH 查找 MSBuild，也支持通过
 4. 发布说明中写明适用于 Windows 64 位 PowerPoint，用户先保存并关闭 PowerPoint，再运行 EXE；列出本次改动及验证报告链接。
 
 GitHub 会自动提供标签对应的源码 ZIP，项目生成的 `SlidePace-Source.zip` 则额外作为已核对的交付源码包。安装使用端无需 Visual Studio 或 Python。
+
+## 已发布版本的文档修订
+
+说明修订提交到 `main`，保留原 `v1.0.3` 标签。发布页注明本次文档提交，并更新 `SlidePace-Source.zip`、`SlidePace-1.0.3-Windows-x64.zip` 和 `SHA256SUMS.txt`，确保下载包中的说明与仓库一致。安装 EXE 的内容及校验和保持不变。
+
+GitHub 自动生成的标签源码归档保留原发布时的文档；需要本次修订后的完整说明，请下载发布附件中的源码包或 Windows 完整包。替换后的下载文件须重新核对 SHA-256。

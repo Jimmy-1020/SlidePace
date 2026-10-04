@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <ProjectGuid>{BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>SlidePace.Setup</RootNamespace>
+    <AssemblyName>SlidePace-Setup</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Optimize>true</Optimize>
+    <LangVersion>5</LangVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('..\..\assets\SlidePace.ico')">..\..\assets\SlidePace.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="InstallerEngine.cs" />
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="..\SlidePace.AddIn\SlidePace.AddIn.csproj">
+      <Project>{C796B33C-417F-41AE-834C-A9875A39C901}</Project><Name>SlidePace.AddIn</Name><ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <EmbeddedResource Include="..\SlidePace.AddIn\bin\$(Configuration)\SlidePace.AddIn.dll"><LogicalName>SlidePace.Payload.dll</LogicalName></EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlidePace.AddIn", "src\SlidePace.AddIn\SlidePace.AddIn.csproj", "{C796B33C-417F-41AE-834C-A9875A39C901}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlidePace.Setup", "src\SlidePace.Setup\SlidePace.Setup.csproj", "{BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlidePace.Tests", "tests\SlidePace.Tests.csproj", "{1C014E2C-F7F2-47CF-92F4-C37AD6308703}"
+EndProject
+Global
+  GlobalSection(SolutionConfigurationPlatforms) = preSolution
+    Debug|Any CPU = Debug|Any CPU
+    Release|Any CPU = Release|Any CPU
+  EndGlobalSection
+  GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    {C796B33C-417F-41AE-834C-A9875A39C901}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+    {C796B33C-417F-41AE-834C-A9875A39C901}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+    {C796B33C-417F-41AE-834C-A9875A39C901}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+    {C796B33C-417F-41AE-834C-A9875A39C901}.Release|Any CPU.Build.0 = Release|AnyCPU
+    {BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+    {BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+    {BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+    {BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}.Release|Any CPU.Build.0 = Release|AnyCPU
+    {1C014E2C-F7F2-47CF-92F4-C37AD6308703}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+    {1C014E2C-F7F2-47CF-92F4-C37AD6308703}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+    {1C014E2C-F7F2-47CF-92F4-C37AD6308703}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+    {1C014E2C-F7F2-47CF-92F4-C37AD6308703}.Release|Any CPU.Build.0 = Release|AnyCPU
+  EndGlobalSection
+EndGlobal

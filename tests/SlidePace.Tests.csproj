@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <ProjectGuid>{1C014E2C-F7F2-47CF-92F4-C37AD6308703}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SlidePace.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>5</LangVersion>
+    <OfficePiaRoot>$(SystemRoot)\assembly\GAC_MSIL</OfficePiaRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" /><Reference Include="System.Core" /><Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" /><Reference Include="System.Xml" /><Reference Include="System.Xml.Linq" />
+    <Reference Include="UIAutomationClient" /><Reference Include="UIAutomationTypes" /><Reference Include="WindowsBase" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Office.Interop.PowerPoint"><HintPath>$(OfficePiaRoot)\Microsoft.Office.Interop.PowerPoint\15.0.0.0__71e9bce111e9429c\Microsoft.Office.Interop.PowerPoint.dll</HintPath><EmbedInteropTypes>true</EmbedInteropTypes></Reference>
+    <Reference Include="Office"><HintPath>$(OfficePiaRoot)\Office\15.0.0.0__71e9bce111e9429c\office.dll</HintPath><EmbedInteropTypes>true</EmbedInteropTypes></Reference>
+    <Compile Include="Program.cs" />
+    <Compile Include="HostLoading.cs" />
+    <Compile Include="NativeComContract.cs" />
+    <Compile Include="SetupInterface.cs" />
+    <ProjectReference Include="..\src\SlidePace.AddIn\SlidePace.AddIn.csproj"><Project>{C796B33C-417F-41AE-834C-A9875A39C901}</Project><Name>SlidePace.AddIn</Name></ProjectReference>
+    <ProjectReference Include="..\src\SlidePace.Setup\SlidePace.Setup.csproj"><Project>{BF1E7323-E2BD-42BE-A47E-BF55C5C5F102}</Project><Name>SlidePace.Setup</Name></ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

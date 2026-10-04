@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <ProjectGuid>{C796B33C-417F-41AE-834C-A9875A39C901}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SlidePace</RootNamespace>
+    <AssemblyName>SlidePace.AddIn</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <LangVersion>5</LangVersion>
+    <OfficePiaRoot>$(SystemRoot)\assembly\GAC_MSIL</OfficePiaRoot>
+    <DefineConstants Condition="'$(Configuration)' == 'Debug'">DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.Office.Interop.PowerPoint">
+      <HintPath>$(OfficePiaRoot)\Microsoft.Office.Interop.PowerPoint\15.0.0.0__71e9bce111e9429c\Microsoft.Office.Interop.PowerPoint.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Office">
+      <HintPath>$(OfficePiaRoot)\Office\15.0.0.0__71e9bce111e9429c\office.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="ComContracts.cs" />
+    <Compile Include="TimerEngine.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="SettingsForm.cs" />
+    <Compile Include="OverlayForm.cs" />
+    <Compile Include="OverlayManager.cs" />
+    <Compile Include="ShowWindows.cs" />
+    <Compile Include="PowerPointAddIn.cs" />
+    <EmbeddedResource Include="Ribbon.xml"><LogicalName>SlidePace.Ribbon.xml</LogicalName></EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

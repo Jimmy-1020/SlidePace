@@ -45,6 +45,7 @@ internal static partial class Program
             else if (suite == "--host-load") HostLoading();
             else if (suite == "--esc-installed") EscapeIntegration(false);
             else if (suite == "--esc-native") EscapeIntegration(true);
+            else if (suite == "--presenter-native") EscapeIntegration(true, true);
             else if (suite == "--focus-ui") OverlayFocusIntegration();
             else if (suite == "--com-abi") NativeComContract();
             else if (suite == "--setup-ui") SetupInterface();
@@ -202,6 +203,7 @@ internal static partial class Program
         Check(exitTimer.Snapshot().IsCompleted && !exitTimer.Snapshot().IsRunning, "exit after deadline without refresh still completes");
         var store = new SettingsStore(Path.Combine(root, "settings"));
         var settings = new UserSettings { Mode = 2, OvertimeColor = "#22CC88", PresenterPosition = OverlayPosition.BottomLeft, NumberFontName = "Arial", CountdownEndBehavior = CountdownEndBehavior.Stop };
+        Check(settings.ShowPresenterTimer, "presenter timer defaults to visible");
         store.Save(settings);
         var loaded = store.Load();
         Equal(loaded.Mode, 0, "new session ignores last mode selection");
@@ -209,18 +211,29 @@ internal static partial class Program
         Equal(loaded.GetOvertimeColor().ToArgb(), Color.FromArgb(0x22, 0xCC, 0x88).ToArgb(), "custom color persists");
         Equal(loaded.PresenterPosition, OverlayPosition.BottomLeft, "position persists");
         Equal(loaded.CountdownEndBehavior, CountdownEndBehavior.Stop, "end behavior persists");
+        Check(loaded.ShowPresenterTimer, "enabled presenter timer persists");
+        settings.ShowPresenterTimer = false;
+        store.Save(settings);
+        Check(!store.Load().ShowPresenterTimer, "disabled presenter timer persists across sessions");
+        settings.ShowPresenterTimer = true;
+        store.Save(settings);
+        Check(store.Load().ShowPresenterTimer, "re-enabled presenter timer persists");
         settings.Mode = 0;
         store.Save(settings);
         Equal(store.Load().Mode, 0, "none persists");
         File.WriteAllText(store.FilePath, "not json");
         Equal(store.Load().CountdownSeconds, 600, "corrupt config falls back");
+        Check(store.Load().ShowPresenterTimer, "corrupt config restores visible presenter timer default");
         File.WriteAllText(store.FilePath, "{}");
         Check(store.Load().CountdownEndBehavior == CountdownEndBehavior.ContinueCountUp && store.Load().FontSize == 1 && store.Load().NumberFontName == "Consolas", "missing configuration fields preserve defaults");
+        Check(store.Load().ShowPresenterTimer, "old configuration without presenter visibility field defaults visible");
         File.WriteAllText(store.FilePath, "{\"Mode\":2,\"CountdownSeconds\":5,\"ShowOverlay\":false}");
         loaded = store.Load();
         Check(loaded.Mode == 0 && loaded.CountdownSeconds == 5 && loaded.CountdownEndBehavior == CountdownEndBehavior.ContinueCountUp, "legacy hidden overlay settings load with new defaults");
         store.Save(loaded);
         Check(!File.ReadAllText(store.FilePath).Contains("ShowOverlay"), "obsolete display switch no longer persists");
+        File.WriteAllText(store.FilePath, "{\"Mode\":2,\"ShowOverlay\":false,\"ShowPresenterTimer\":false}");
+        Check(!store.Load().ShowPresenterTimer && store.Load().Mode == 0, "explicit presenter visibility survives ignored legacy display and session mode fields");
         settings = new UserSettings { Mode = 999, CountdownSeconds = -2, OvertimeColor = "garbage", FontSize = 10, NumberFontName = "SlidePace Missing Font", CountdownEndBehavior = (CountdownEndBehavior)999 };
         settings.Validate();
         Equal(settings.Mode, 0, "invalid mode fallback");
@@ -341,6 +354,9 @@ internal static partial class Program
                     fontPicker.SelectedItem = "Arial";
                     ComboBox behaviorPicker = (ComboBox)dialog.Controls.Find("CountdownEndBehavior", true).Single();
                     behaviorPicker.SelectedIndex = (int)CountdownEndBehavior.Stop;
+                    CheckBox presenterToggle = (CheckBox)dialog.Controls.Find("ShowPresenterTimer", true).Single();
+                    Check(presenterToggle.Checked && presenterToggle.Text == "演示者侧显示计时器", "settings exposes presenter-only switch with visible default");
+                    presenterToggle.Checked = false;
                     TableLayoutPanel table = dialog.Controls.OfType<TableLayoutPanel>().Single();
                     Check(dialog.ClientSize.Width < 620 && dialog.ClientSize.Height < 620, "settings dialog is narrower and shorter");
                     Check(!table.Controls.OfType<Label>().Any(delegate(Label label) { return label.Text.Contains("放映自动开始") || label.Text.Contains("-"); }), "settings removes heading and negative preview");
@@ -356,13 +372,17 @@ internal static partial class Program
                     save.PerformClick();
                     Equal(dialog.Result.NumberFontName, "Arial", "font picker saves selected family");
                     Equal(dialog.Result.CountdownEndBehavior, CountdownEndBehavior.Stop, "end behavior picker saves stop");
+                    Check(!dialog.Result.ShowPresenterTimer, "settings saves hidden presenter timer selection");
                     settings.NumberFontName = dialog.Result.NumberFontName;
                 }
                 using (var dialog = new SettingsForm(settings, true))
                 {
                     dialog.Show();
                     Check(!dialog.Controls.Find("CountdownEndBehavior", true).Single().Enabled, "running countdown locks end behavior");
+                    Check(dialog.Controls.Find("ShowPresenterTimer", true).Single().Enabled, "presenter visibility can change while countdown is running");
+                    ((CheckBox)dialog.Controls.Find("ShowPresenterTimer", true).Single()).Checked = false;
                     dialog.Close();
+                    Check(settings.ShowPresenterTimer, "cancel leaves presenter visibility unchanged");
                 }
                 manager.ApplySettings(settings);
                 manager.Render(engine.Snapshot(), true);
@@ -421,9 +441,32 @@ internal static partial class Program
                 engine.SelectMode(TimerMode.Clock);
                 manager.Render(engine.Snapshot(), true);
                 Check(!first.ControlsVisible, "clock has no hover controls");
+                engine.SelectMode(TimerMode.CountUp);
+                time.Seconds += 3;
+                manager.Render(engine.Snapshot(), true);
+                Rectangle audienceBounds = manager.Forms.Single(delegate(OverlayForm form) { return !form.IsPresenter; }).CompactBounds;
+                settings.ShowPresenterTimer = false;
+                manager.ApplySettings(settings);
+                manager.Render(engine.Snapshot(), true);
+                Equal(manager.Forms.Count, 1, "hiding presenter leaves one audience timer, including shared-screen fallback");
+                Check(!manager.Forms[0].IsPresenter && manager.Forms[0].CompactBounds == audienceBounds, "audience timer keeps its position while presenter is hidden");
+                Check(engine.Snapshot().IsRunning && engine.Snapshot().ElapsedSeconds >= 3, "presenter visibility does not pause or reset timer");
+                time.Seconds += 2;
+                manager.Render(engine.Snapshot(), true);
+                Equal(manager.Forms[0].DisplayText, "00:00:05", "audience count continues while presenter timer is hidden");
+                CheckVisibleOverlay(manager.Forms[0], Path.Combine(root, "audience-only.png"));
+                settings.ShowPresenterTimer = true;
+                manager.ApplySettings(settings);
+                manager.Render(engine.Snapshot(), true);
+                Equal(manager.Forms.Count, Math.Min(2, Screen.AllScreens.Length), "re-enabling restores separate presenter timer where available");
+                Check(manager.Forms.All(delegate(OverlayForm form) { return form.DisplayText == "00:00:05"; }), "restored presenter shares current audience reading");
                 engine.SelectMode(TimerMode.None);
                 manager.Render(engine.Snapshot(), true);
                 Equal(manager.Forms.Count, 0, "none closes all windows");
+                settings.ShowPresenterTimer = false;
+                manager.ApplySettings(settings);
+                manager.Render(engine.Snapshot(), true);
+                Equal(manager.Forms.Count, 0, "presenter switch does not override no selected mode");
             }
             finally { Cursor.Position = pointer; }
         }

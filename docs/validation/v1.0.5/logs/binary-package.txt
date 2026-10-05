@@ -1,0 +1,4 @@
+Formal installed DLL preserved at version 1.0.3.0; test registration absent.
+Setup assembly/file/product: 1.0.5.0 / 1.0.5.0 / 1.0.5
+Embedded, built and tested DLL bytes match: 7374dab4555ce71f4ec09759e2516456448025969e0978b0cc0d6c397d1c80ea
+Installer SHA256: 9a12c64a768da0c24902e4faaab5c58b1bc4beeab9d1a8a809afa07c45f5408e

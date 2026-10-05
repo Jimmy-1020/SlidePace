@@ -1,8 +1,12 @@
 # SlidePace GitHub 发布说明
 
-当前版本为 `1.0.4`，源码放在 GitHub 仓库，用户安装文件放在 [Releases](https://github.com/Jimmy-1020/SlidePace/releases/tag/v1.0.4)。
+GitHub 已发布版本为 `1.0.5`，源码放在 GitHub 仓库，用户安装文件放在 [Releases](https://github.com/Jimmy-1020/SlidePace/releases/tag/v1.0.5)。
 
-1.0.4 修复计时框抢占焦点导致的 Esc 退出问题，并增加宿主焦点与真实键盘双屏退出验证；需求文档为 v0.9.1，演示者内容避让仍待实现。本次通过新标签 `v1.0.4` 发布，保留原 1.0.3 发布记录。
+1.0.5 新增“演示者侧显示计时器”独立开关，并保留 1.0.4 的 Esc 焦点修复。本次通过新标签 `v1.0.5` 发布，保留原 `v1.0.3`、`v1.0.4` 标签及发布记录。
+
+1.0.4 的源码提交及标签为 `c2ee2fa62488b827c9563679076cf047f15ab074`，其已发布附件及内容保留。1.0.5 发布附件包括 `SlidePace-Setup.exe`、`SlidePace-Source.zip`、`SlidePace-1.0.5-Windows-x64.zip` 和 `SHA256SUMS.txt`；源码包和完整 Windows 包都包含对应的使用说明、需求文档与验证记录。
+
+1.0.5 对应需求文档 v0.10：取消勾选“演示者侧显示计时器”后，保留演示者视图，仅隐藏该侧计时框，观众计时继续。设置会保存，放映中也可调整。8 组测试共 529 个断言通过；演示者内容自动避让仍待实现，实测范围见 [验证报告](./验证报告.md)。
 
 项目仓库：[Jimmy-1020/SlidePace](https://github.com/Jimmy-1020/SlidePace)。
 
@@ -39,7 +43,7 @@ Python 构建脚本会通过 `vswhere` 或 PATH 查找 MSBuild，也支持通过
 ## 发布安装包
 
 1. 在 GitHub 仓库打开 **Releases → Draft a new release**。
-2. 为修复源码创建 `v1.0.4` 标签，标题填写 `SlidePace 1.0.4`；保留原 `v1.0.3` 标签。
+2. 核对准备发布的版本，为新版本创建对应标签及发布标题；例如 1.0.5 使用 `v1.0.5` 和 `SlidePace 1.0.5`。后续版本创建新标签，保留已有标签、发布记录及附件。
 3. 上传 `dist` 中的 `SlidePace-Setup.exe`、`SlidePace-Source.zip`、`SHA256SUMS.txt`。如需完整说明，也上传中文 Markdown 文档及验证截图目录的压缩包。
 4. 发布说明中写明适用于 Windows 64 位 PowerPoint，用户先保存并关闭 PowerPoint，再运行 EXE；列出本次改动及验证报告链接。
 

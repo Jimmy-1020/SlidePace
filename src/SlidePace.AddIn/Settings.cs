@@ -26,6 +26,7 @@ namespace SlidePace
         [DataMember] public string OvertimeColor = "#FF0000";
         [DataMember] public int FontSize = 1;
         [DataMember] public string NumberFontName = "Consolas";
+        [DataMember] public bool ShowPresenterTimer = true;
         [DataMember] public OverlayPosition PresenterPosition;
         [DataMember] public OverlayPosition AudiencePosition;
         [DataMember] public string PresenterDevice = "";
@@ -40,6 +41,7 @@ namespace SlidePace
             OvertimeColor = "#FF0000";
             FontSize = 1;
             NumberFontName = "Consolas";
+            ShowPresenterTimer = true;
             PresenterDevice = AudienceDevice = "";
             Locations = new List<SavedLocation>();
         }

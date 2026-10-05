@@ -148,8 +148,8 @@ namespace SlidePace
         public void OnOpenSettings(Office.IRibbonControl control) { OpenSettings(); }
         public void OnHelp(Office.IRibbonControl control)
         {
-            MessageBox.Show("每次打开 PowerPoint 默认不选计时模式。点击一种模式选中，再次点击取消；进入放映自动显示并开始。\n\n框体半透明，平时只显示时间数字；悬停展开按钮，移开恢复紧凑高度。运行时“开始”原位变为“暂停”。\n\n在“计时器设置”中选择时长、归零后停止或继续顺计时、字体、字号、颜色和位置。时间不显示负数；倒计时归零后默认变为红色，可自选颜色。\n\n演讲者和观众屏幕同步显示；右键可收起框体或切换模式。\n\n取消选中模式后所有屏幕都不显示计时。结束放映自动暂停；再次放映继续本次会话读数。已完成的倒计时保持零，开始新一轮请先重置。",
-                "SlidePace 1.0.4 · 使用说明", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("每次打开 PowerPoint 默认不选计时模式。点击一种模式选中，再次点击取消；进入放映自动显示并开始。\n\n框体半透明，平时只显示时间数字；悬停展开按钮，移开恢复紧凑高度。运行时“开始”原位变为“暂停”。\n\n在“计时器设置”中选择时长、归零后停止或继续顺计时、字体、字号、颜色和位置。时间不显示负数；倒计时归零后默认变为红色，可自选颜色。\n\n演讲者和观众屏幕默认同步显示。取消勾选“演示者侧显示计时器”并保存，仅隐藏该侧计时框，保留演示者视图与观众计时。右键可收起框体或切换模式。\n\n取消选中模式后所有屏幕都不显示计时。结束放映自动暂停；再次放映继续本次会话读数。已完成的倒计时保持零，开始新一轮请先重置。",
+                "SlidePace 1.0.5 · 使用说明", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         internal void SelectMode(TimerMode mode)

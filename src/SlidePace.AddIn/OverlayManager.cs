@@ -63,9 +63,12 @@ namespace SlidePace
                 Screen presenter = Find(settings.PresenterDevice, Screen.PrimaryScreen);
                 if (presenter.DeviceName == audience.DeviceName && Screen.AllScreens.Length > 1)
                     presenter = Screen.AllScreens.First(delegate(Screen screen) { return screen.DeviceName != audience.DeviceName; });
-                surfaces = new List<OverlaySurface> { new OverlaySurface { Bounds = presenter.Bounds, Device = presenter.DeviceName, Presenter = true } };
+                surfaces = new List<OverlaySurface> { new OverlaySurface { Bounds = presenter.Bounds, Device = presenter.DeviceName, Presenter = presenter.DeviceName != audience.DeviceName } };
                 if (presenter.DeviceName != audience.DeviceName) surfaces.Add(new OverlaySurface { Bounds = audience.Bounds, Device = audience.DeviceName });
             }
+            // Only suppress the separate presenter timer; the actual presenter
+            // view, audience timer and shared timer engine remain in PowerPoint.
+            surfaces.RemoveAll(delegate(OverlaySurface surface) { return surface.Presenter && !settings.ShowPresenterTimer; });
             if (surfaces.Count == 0) { CloseForms(); return; }
             string desired = string.Join(";", surfaces.Select(delegate(OverlaySurface surface) { return surface.Window + ":" + surface.Bounds + ":" + surface.Presenter; })) + "|" + settings.FontSize + "|" + collapsed + "|" +
                 settings.PresenterPosition + "|" + settings.AudiencePosition + "|" +

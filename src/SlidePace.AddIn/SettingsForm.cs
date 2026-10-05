@@ -22,6 +22,7 @@ namespace SlidePace
         private readonly ComboBox audience = new ComboBox();
         private readonly ComboBox presenterPosition = new ComboBox();
         private readonly ComboBox audiencePosition = new ComboBox();
+        private readonly CheckBox showPresenterTimer = new CheckBox();
         private readonly Button colorButton = new Button();
         private readonly List<string> devices = new List<string>();
         private Color overtimeColor;
@@ -34,16 +35,16 @@ namespace SlidePace
             Font = new Font("Microsoft YaHei UI", 9);
             BackColor = Color.FromArgb(246, 248, 251);
             ForeColor = Color.FromArgb(27, 40, 56);
-            ClientSize = new Size(500, 446);
+            ClientSize = new Size(500, 478);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
             AutoScaleMode = AutoScaleMode.Dpi;
-            var table = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(18), ColumnCount = 2, RowCount = 12, AutoScroll = true };
+            var table = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(18), ColumnCount = 2, RowCount = 13, AutoScroll = true };
             table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
             table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            for (int index = 0; index < 11; index++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, index == 1 ? 36 : index == 6 ? 40 : 32));
+            for (int index = 0; index < 12; index++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, index == 1 ? 36 : index == 6 ? 40 : 32));
             table.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
             mode.Items.AddRange(new object[] { "不显示（全部不选）", "顺计时", "倒计时", "系统时间" });
             mode.SelectedIndex = settings.Mode;
@@ -114,16 +115,24 @@ namespace SlidePace
             audience.SelectedIndex = Math.Max(0, devices.IndexOf(settings.AudienceDevice));
             AddRow(table, 7, "演讲者屏幕", presenter);
             AddRow(table, 8, "观众放映屏幕", audience);
+            showPresenterTimer.Name = "ShowPresenterTimer";
+            showPresenterTimer.Text = "演示者侧显示计时器";
+            showPresenterTimer.AccessibleName = showPresenterTimer.Text;
+            showPresenterTimer.AutoSize = true;
+            showPresenterTimer.Anchor = AnchorStyles.Left;
+            showPresenterTimer.Checked = settings.ShowPresenterTimer;
+            table.Controls.Add(showPresenterTimer, 0, 9);
+            table.SetColumnSpan(showPresenterTimer, 2);
             FillPositions(presenterPosition, settings.PresenterPosition);
             FillPositions(audiencePosition, settings.AudiencePosition);
-            AddRow(table, 9, "演讲者框体位置", presenterPosition);
-            AddRow(table, 10, "观众框体位置", audiencePosition);
+            AddRow(table, 10, "演讲者框体位置", presenterPosition);
+            AddRow(table, 11, "观众框体位置", audiencePosition);
             var footer = new FlowLayoutPanel { Dock = DockStyle.Fill, Margin = new Padding(0), FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 6, 0, 0) };
             var save = new Button { Text = "保存设置", Width = 112, Height = 34, BackColor = Color.FromArgb(35, 93, 179), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             var cancel = new Button { Text = "取消", Width = 90, Height = 34, DialogResult = DialogResult.Cancel };
             save.Click += Save;
             footer.Controls.AddRange(new Control[] { save, cancel });
-            table.Controls.Add(footer, 0, 11);
+            table.Controls.Add(footer, 0, 12);
             table.SetColumnSpan(footer, 2);
             Controls.Add(table);
             AcceptButton = save;
@@ -179,6 +188,7 @@ namespace SlidePace
                 CountdownEndBehavior = (CountdownEndBehavior)endBehavior.SelectedIndex,
                 FontSize = size.SelectedIndex,
                 NumberFontName = (string)numberFont.SelectedItem ?? "Consolas",
+                ShowPresenterTimer = showPresenterTimer.Checked,
                 OvertimeColor = ColorTranslator.ToHtml(overtimeColor),
                 PresenterDevice = devices[presenter.SelectedIndex],
                 AudienceDevice = devices[audience.SelectedIndex],

@@ -118,7 +118,7 @@ internal static partial class Program
         uint thread = GetWindowThreadProcessId(foreground, out pid);
         var gui = new GuiThreadInfo { Size = (uint)Marshal.SizeOf(typeof(GuiThreadInfo)) };
         GetGUIThreadInfo(thread, ref gui);
-        Console.WriteLine(stage + " | shows=" + app.SlideShowWindows.Count + " | status=" + Status(automation) +
+        Console.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff") + " " + stage + " | shows=" + app.SlideShowWindows.Count + " | status=" + Status(automation) +
             " | foreground=" + WindowClass(foreground) + " pid=" + pid + " tid=" + thread +
             " | active=" + WindowClass(gui.Active) + " focus=" + WindowClass(gui.Focus) + " capture=" + WindowClass(gui.Capture) +
             " menu=" + WindowClass(gui.MenuOwner) + " flags=" + gui.Flags);
@@ -261,7 +261,47 @@ internal static partial class Program
         try { action(); }
         catch (Exception error) { errors.Add(description + ": " + error.Message); }
     }
-    private static void EscapeIntegration(bool temporaryNative)
+    private static void SetPresenterForTest(object automation, bool visible)
+    {
+        automation.GetType().InvokeMember("SetPresenterTimerForValidation", BindingFlags.InvokeMethod, null, automation, new object[] { visible });
+    }
+    private static double NativeElapsed(object automation)
+    {
+        return (double)automation.GetType().InvokeMember("GetElapsedForValidation", BindingFlags.InvokeMethod, null, automation, new object[0]);
+    }
+    private static void CheckAudienceOnly(PowerPoint.Application app, object automation, uint process, TimerMode mode, IList<IntPtr> presenters, string name)
+    {
+        Equal(app.SlideShowWindows.Count, 1, "hiding presenter timer keeps audience slideshow running");
+        Check(PresenterWindows(process).SequenceEqual(presenters), "hiding timer preserves actual presenter view HWND");
+        Check(app.SlideShowWindows[1].View.State == PowerPoint.PpSlideShowState.ppSlideShowRunning, "hiding timer does not pause PowerPoint show");
+        List<IntPtr> timers = NativeTimerWindows(process);
+        Equal(timers.Count, mode == TimerMode.None ? 0 : 1, "only audience timer remains when presenter timer is hidden");
+        Equal(Status(automation).Split('|')[3], timers.Count.ToString(), "managed form count matches native visible windows");
+        Check(!timers.Contains(GetForegroundWindow()), "visibility change does not steal keyboard focus");
+        foreach (IntPtr presenter in presenters)
+            SaveHostWindow(presenter, Path.Combine(root, name + "-presenter-without-timer.png"));
+        if (mode == TimerMode.None) return;
+        IntPtr timer = timers.Single();
+        Equal(GetWindow(timer, 4), ShowWindows.Root(new IntPtr(app.SlideShowWindows[1].HWND)), "remaining timer belongs to audience window");
+        WindowRectangle area;
+        Check(GetWindowRect(timer, out area), "audience timer rectangle available");
+        using (var bitmap = new Bitmap(area.Right - area.Left, area.Bottom - area.Top))
+        using (Graphics graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.CopyFromScreen(new Point(area.Left, area.Top), Point.Empty, bitmap.Size);
+            int white = 0;
+            for (int y = 0; y < bitmap.Height; y++)
+                for (int x = 0; x < bitmap.Width; x++)
+                {
+                    Color pixel = bitmap.GetPixel(x, y);
+                    if (pixel.R >= 200 && pixel.G >= 200 && pixel.B >= 200) white++;
+                }
+            Check(white >= 50, "audience time digits remain visible above real slideshow");
+            bitmap.Save(Path.Combine(root, name + "-audience-only.png"));
+        }
+        SaveHostWindow(ShowWindows.Root(new IntPtr(app.SlideShowWindows[1].HWND)), Path.Combine(root, name + "-audience-view.png"));
+    }
+    private static void EscapeIntegration(bool temporaryNative, bool testPresenterVisibility = false)
     {
         PowerPoint.Application app;
         bool ownApplication = false;
@@ -321,9 +361,10 @@ internal static partial class Program
             foreach (TimerMode mode in modes)
             {
                 SelectEscapeMode(host, automation, mode, temporaryNative);
-                for (int scenario = 0; scenario < 2; scenario++)
+                for (int scenario = 0; scenario < (testPresenterVisibility ? 3 : 2); scenario++)
                 {
-                    string name = mode + (scenario == 0 ? "-untouched" : "-presenter-click");
+                    string name = mode + (scenario == 0 ? "-untouched" : scenario == 1 ? "-presenter-click" : "-presenter-hidden");
+                    if (testPresenterVisibility) SetPresenterForTest(automation, scenario != 2);
                     presentation.Windows[1].Activate();
                     // Setup only: give the temporary editor input focus BEFORE F5.
                     // No Activate/SetForegroundWindow is permitted after slideshow startup.
@@ -339,9 +380,28 @@ internal static partial class Program
                     {
                         Check(app.SlideShowWindows[1].View.State == PowerPoint.PpSlideShowState.ppSlideShowRunning, "timer display does not pause PowerPoint slideshow");
                         Check(!NativeTimerWindows(process).Contains(GetForegroundWindow()), "startup focus does not belong to timer");
-                        Equal(int.Parse(Status(automation).Split('|')[3]), mode == TimerMode.None ? 0 : Math.Min(2, Screen.AllScreens.Length), "native overlay count at untouched startup");
+                        Equal(int.Parse(Status(automation).Split('|')[3]), mode == TimerMode.None ? 0 : scenario == 2 ? 1 : Math.Min(2, Screen.AllScreens.Length), "native overlay count at untouched startup");
                     }
-                    if (scenario == 1)
+                    if (testPresenterVisibility && scenario == 1)
+                    {
+                        var presenters = PresenterWindows(process);
+                        double elapsed = NativeElapsed(automation);
+                        SetPresenterForTest(automation, false);
+                        Pump(350);
+                        TraceEscape(name + " presenter timer hidden", app, automation, process);
+                        Console.WriteLine("  managed overlays: " + automation.GetType().InvokeMember("GetOverlayDetailsForValidation", BindingFlags.InvokeMethod, null, automation, new object[0]));
+                        CheckAudienceOnly(app, automation, process, mode, presenters, name);
+                        if (mode == TimerMode.CountDown || mode == TimerMode.CountUp)
+                            Check(Status(automation).Split('|')[2] == "True" && NativeElapsed(automation) > elapsed, "shared counter continues without pause or reset while presenter timer is hidden");
+                        SetPresenterForTest(automation, true);
+                        Pump(250);
+                        Equal(int.Parse(Status(automation).Split('|')[3]), mode == TimerMode.None ? 0 : Math.Min(2, Screen.AllScreens.Length), "re-enabling restores presenter timer without enabling deselected modes");
+                        Equal(NativeTimerWindows(process).Count, int.Parse(Status(automation).Split('|')[3]), "restored timer forms are actually visible");
+                        Check(PresenterWindows(process).SequenceEqual(presenters), "re-enabling timer leaves presenter view unchanged");
+                    }
+                    if (testPresenterVisibility && scenario == 2)
+                        CheckAudienceOnly(app, automation, process, mode, PresenterWindows(process), name);
+                    if (scenario != 0)
                     {
                         var presenters = PresenterWindows(process);
                         Check(presenters.Count == 1, "actual presenter view available for click");
